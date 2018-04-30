@@ -1288,7 +1288,7 @@ static int fb_notifier_callback(struct notifier_block *self,
 				   &fts_data->resume_work);
 		}
 		break;
-	case MSM_DRM_BLANK_POWERDOWN:
+	case MSM_DRM_BLANK_LP:
 		//    case MSM_DRM_BLANK_LP1:
 		//    case MSM_DRM_BLANK_LP2:
 		if (ts_data->finger_in_fod) {
