@@ -652,6 +652,9 @@ static int dsi_panel_update_backlight(struct dsi_panel *panel,
 	pr_err("%s bl_level(%d).\n", __func__, bl_lvl);
 	}
 
+	if (panel->fod_hbm_status)
+		return 0;
+
 	dsi = &panel->mipi_device;
 
 	if (bl_lvl == 0) {
@@ -786,6 +789,48 @@ int dsi_panel_update_doze(struct dsi_panel *panel) {
 		if (rc)
 			pr_err("[%s] failed to send DSI_CMD_SET_NOLP cmd, rc=%d\n",
 					panel->name, rc);
+	}
+
+	return rc;
+}
+
+int dsi_panel_set_normal_backlight(struct dsi_panel *panel, u32 bl_lvl)
+{
+	int rc = 0;
+
+	rc = dsi_panel_tx_cmd_set(panel, DSI_CMD_SET_DISP_DIMMINGOFF);
+	if (rc)
+		pr_err("[%s] failed to send DSI_CMD_SET_DISP_DIMMINGOFF cmd, rc=%d\n",
+				panel->name, rc);
+
+	return rc;
+}
+
+int dsi_panel_set_fod_hbm_backlight(struct dsi_panel *panel, bool status) {
+	u32 bl_level;
+	int rc = 0;
+
+	if (status == panel->fod_hbm_status)
+		return 0;
+
+	if (status) {
+		bl_level = panel->bl_config.bl_max_level;
+
+		if (panel->doze_state) {
+			dsi_panel_set_normal_backlight(panel, bl_level);
+		}
+
+		dsi_panel_update_backlight(panel, bl_level);
+		panel->fod_hbm_status = true;
+	} else {
+		bl_level = panel->bl_config.bl_level;
+
+		panel->fod_hbm_status = false;
+		dsi_panel_update_backlight(panel, panel->bl_config.bl_level);
+
+		if (panel->doze_state) {
+			dsi_panel_set_doze_backlight(panel, bl_level);
+		}
 	}
 
 	return rc;
@@ -2013,6 +2058,7 @@ const char *cmd_set_prop_map[DSI_CMD_SET_MAX] = {
 	"qcom,mdss-dsi-doze-lbm-command",
 	"qcom,mdss-dsi-dispparam-hbm-fod-on-command",
 	"qcom,mdss-dsi-dispparam-hbm-fod-off-command",
+	"qcom,mdss-dsi-dispparam-dimmingoff-command",
 };
 
 const char *cmd_set_state_map[DSI_CMD_SET_MAX] = {
@@ -2053,6 +2099,7 @@ const char *cmd_set_state_map[DSI_CMD_SET_MAX] = {
 	"qcom,mdss-dsi-doze-lbm-command-state",
 	"qcom,mdss-dsi-dispparam-hbm-fod-on-command-state",
 	"qcom,mdss-dsi-dispparam-hbm-fod-off-command-state",
+	"qcom,mdss-dsi-dispparam-dimmingoff-command-state",
 };
 
 static int dsi_panel_get_cmd_pkt_count(const char *data, u32 length, u32 *cnt)
@@ -3844,6 +3891,7 @@ struct dsi_panel *dsi_panel_get(struct device *parent,
 	panel->power_mode = SDE_MODE_DPMS_OFF;
 	drm_panel_init(&panel->drm_panel);
 	panel->doze_enabled = false;
+	panel->fod_hbm_status = false;
 
 	panel->fod_hbm_enabled = false;
 	panel->fod_backlight_flag = false;
