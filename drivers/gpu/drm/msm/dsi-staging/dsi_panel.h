@@ -132,6 +132,8 @@ struct dsi_backlight_config {
 
 	bool dcs_type_samsung;
 
+	bool bl_remap_flag;
+
 	/* PWM params */
 	struct pwm_device *pwm_bl;
 	bool pwm_enabled;
