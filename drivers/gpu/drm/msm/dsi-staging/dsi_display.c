@@ -20,6 +20,8 @@
 #include <linux/of_gpio.h>
 #include <linux/err.h>
 
+#include <linux/msm_drm_notify.h>
+
 #include "msm_drv.h"
 #include "sde_connector.h"
 #include "msm_mmu.h"
@@ -1623,6 +1625,8 @@ int dsi_display_set_power(struct drm_connector *connector,
 {
 	struct dsi_display *display = disp;
 	int rc = 0;
+	struct msm_drm_notifier notify_data;
+	int event = power_mode;
     //static int flag_tp_notify=0;
 	int blank;
 	struct msm_drm_notifier notifier_data;
@@ -1656,31 +1660,32 @@ int dsi_display_set_power(struct drm_connector *connector,
 			dev = connector->dev;
 	}
 
+	notify_data.data = &event;
 
 	switch (power_mode) {
 	case SDE_MODE_DPMS_LP1:
 		pr_info("enter SDE_MODE_DPMS_LP1\n");
 		blank = MSM_DRM_BLANK_POWERDOWN;
 		notifier_data.data = &blank;
-		msm_drm_notifier_call_chain(MSM_DRM_EARLY_EVENT_BLANK,
-					&notifier_data);
+		msm_drm_notifier_call_chain(MSM_DRM_EARLY_EVENT_BLANK, &notify_data);
 		rc = dsi_panel_set_lp1(display->panel);
+		msm_drm_notifier_call_chain(MSM_DRM_EVENT_BLANK, &notify_data);
 		break;
 	case SDE_MODE_DPMS_LP2:
 		pr_info("enter SDE_MODE_DPMS_LP2\n");
 		blank = MSM_DRM_BLANK_POWERDOWN;
 		notifier_data.data = &blank;
-		msm_drm_notifier_call_chain(MSM_DRM_EARLY_EVENT_BLANK,
-					&notifier_data);
+		msm_drm_notifier_call_chain(MSM_DRM_EARLY_EVENT_BLANK, &notify_data);
 		rc = dsi_panel_set_lp2(display->panel);
+		msm_drm_notifier_call_chain(MSM_DRM_EVENT_BLANK, &notify_data);
 		break;
 	case SDE_MODE_DPMS_ON:
 		blank = MSM_DRM_BLANK_UNBLANK;
 		notifier_data.data = &blank;
 		pr_info("enter SDE_MODE_DPMS_NOLP\n");
-		msm_drm_notifier_call_chain(MSM_DRM_EARLY_EVENT_BLANK,
-					&notifier_data);
+		msm_drm_notifier_call_chain(MSM_DRM_EARLY_EVENT_BLANK, &notify_data);
 		rc = dsi_panel_set_nolp(display->panel);
+		msm_drm_notifier_call_chain(MSM_DRM_EVENT_BLANK, &notify_data);
 		break;
 	case SDE_MODE_DPMS_OFF:
 		blank = MSM_DRM_BLANK_POWERDOWN;
