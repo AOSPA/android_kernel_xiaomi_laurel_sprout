@@ -42,6 +42,7 @@
 #include "sde_power_handle.h"
 #include "sde_core_perf.h"
 #include "sde_trace.h"
+#include "dsi_display.h"
 
 #define SDE_PSTATES_MAX (SDE_STAGE_MAX * 4)
 #define SDE_MULTIRECT_PLANE_MAX (SDE_STAGE_MAX * 2)
@@ -2133,6 +2134,7 @@ static void _sde_crtc_blend_setup_mixer(struct drm_crtc *crtc,
 		for (i = 0; i < cstate->num_dim_layers; i++)
 			_sde_crtc_setup_dim_layer_cfg(crtc, sde_crtc,
 					mixer, &cstate->dim_layer[i]);
+
 	}
 
 	_sde_crtc_program_lm_output_roi(crtc);
@@ -5236,6 +5238,17 @@ static int _sde_crtc_check_secure_state(struct drm_crtc *crtc,
 	return 0;
 }
 
+static void sde_crtc_fod_atomic_check(struct sde_crtc_state *cstate,
+		struct plane_state *pstates, int cnt)
+{
+	uint32_t dim_layer_stage;
+	int plane_idx;
+
+	for (plane_idx = 0; plane_idx < cnt; plane_idx++)
+		if (sde_plane_is_fod_layer(pstates[plane_idx].drm_pstate))
+			break;
+}
+
 static int sde_crtc_atomic_check(struct drm_crtc *crtc,
 		struct drm_crtc_state *state)
 {
@@ -5430,6 +5443,8 @@ static int sde_crtc_atomic_check(struct drm_crtc *crtc,
 			sde_plane_clear_multirect(pipe_staged[i]);
 		}
 	}
+
+	sde_crtc_fod_atomic_check(cstate, pstates, cnt);
 
 	/* assign mixer stages based on sorted zpos property */
 	if (cnt > 0)
