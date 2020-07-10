@@ -753,25 +753,7 @@ static void  dsi_panel_dimming_enable_delayed_work(struct work_struct *work)
 #endif
 int dsi_panel_set_doze_backlight(struct dsi_panel *panel, u32 bl_lvl)
 {
-	int rc = 0;
-
-	if (!panel) {
-		pr_err("invalid panel ptr params\n");
-		return -EINVAL;
-	}
-
-	if(bl_lvl > 0 && bl_lvl < 16) {
-		rc = dsi_panel_tx_cmd_set(panel, DSI_CMD_SET_DOZE_LB);
-		pr_info("set doze backlight to low brightness:%d\n",bl_lvl);
-	} else if(bl_lvl >= 16){
-		rc = dsi_panel_tx_cmd_set(panel, DSI_CMD_SET_DOZE_HB);
-		pr_info("set doze backlight to high brightness:%d\n",bl_lvl);
-	}
-
-	if (rc)
-		pr_err("[%s] failed to seed doze backlight cmd, rc=%d\n", panel->name, rc);
-
-	return rc;
+	return dsi_panel_set_backlight(panel, bl_lvl);
 }
 int dsi_panel_set_brightness(struct dsi_panel *panel, u8 dimming, u32 brightness)
 {
