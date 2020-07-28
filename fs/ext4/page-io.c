@@ -507,8 +507,6 @@ int ext4_bio_write_page(struct ext4_io_submit *io,
 				congestion_wait(BLK_RW_ASYNC, HZ/50);
 				goto retry_encrypt;
 			}
-			data_page = NULL;
-			goto out;
 		}
 	}
 
