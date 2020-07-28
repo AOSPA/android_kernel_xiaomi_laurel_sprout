@@ -849,8 +849,9 @@ int dsi_panel_set_backlight(struct dsi_panel *panel, u32 bl_lvl)
 		pr_err("Backlight type(%d) not supported\n", bl->type);
 		rc = -ENOTSUPP;
 	}
-    if(bl_lvl != 0)  
-	panel->last_bl_lvl = bl_lvl;
+
+	if (bl_lvl != 0)
+		panel->last_bl_lvl = bl_lvl;
 
 	return rc;
 }
