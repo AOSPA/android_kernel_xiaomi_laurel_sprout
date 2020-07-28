@@ -876,9 +876,10 @@ gfspi_probe_clk_init_failed:
 #endif
 	
 error_input:
-	if (gf_dev->input != NULL)
+	if (gf_dev->input != NULL) {
 		input_unregister_device(gf_dev->input);
 		input_free_device(gf_dev->input);
+	}
 error_dev:
 	if (gf_dev->devt != 0) {
 		pr_debug("Err: status = %d\n", status);
