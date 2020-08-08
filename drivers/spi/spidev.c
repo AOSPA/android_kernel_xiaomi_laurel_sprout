@@ -90,7 +90,7 @@ struct spidev_data {
 static LIST_HEAD(device_list);
 static DEFINE_MUTEX(device_list_lock);
 
-static unsigned bufsiz = 512*4096;
+static unsigned bufsiz = 4096;
 module_param(bufsiz, uint, S_IRUGO);
 MODULE_PARM_DESC(bufsiz, "data bytes in biggest supported SPI message");
 
@@ -123,10 +123,7 @@ spidev_sync_write(struct spidev_data *spidev, size_t len)
 	struct spi_transfer	t = {
 			.tx_buf		= spidev->tx_buffer,
 			.len		= len,
-			.delay_usecs = 0,
-			.cs_change   =0,
-			.speed_hz   = 960000,
-//			.speed_hz	= spidev->speed_hz,
+			.speed_hz	= spidev->speed_hz,
 		};
 	struct spi_message	m;
 
@@ -573,8 +570,24 @@ static int spidev_open(struct inode *inode, struct file *filp)
 		pr_debug("spidev: nothing for minor %d\n", iminor(inode));
 		goto err_find_dev;
 	}
-	memset(spidev->tx_buffer,0,bufsiz);
-	memset(spidev->rx_buffer,0,bufsiz);
+
+	if (!spidev->tx_buffer) {
+		spidev->tx_buffer = kmalloc(bufsiz, GFP_KERNEL);
+		if (!spidev->tx_buffer) {
+			dev_dbg(&spidev->spi->dev, "open/ENOMEM\n");
+			status = -ENOMEM;
+			goto err_find_dev;
+		}
+	}
+
+	if (!spidev->rx_buffer) {
+		spidev->rx_buffer = kmalloc(bufsiz, GFP_KERNEL);
+		if (!spidev->rx_buffer) {
+			dev_dbg(&spidev->spi->dev, "open/ENOMEM\n");
+			status = -ENOMEM;
+			goto err_alloc_rx_buf;
+		}
+	}
 
 	spidev->users++;
 	filp->private_data = spidev;
@@ -583,6 +596,9 @@ static int spidev_open(struct inode *inode, struct file *filp)
 	mutex_unlock(&device_list_lock);
 	return 0;
 
+err_alloc_rx_buf:
+	kfree(spidev->tx_buffer);
+	spidev->tx_buffer = NULL;
 err_find_dev:
 	mutex_unlock(&device_list_lock);
 	return status;
@@ -591,29 +607,35 @@ err_find_dev:
 static int spidev_release(struct inode *inode, struct file *filp)
 {
 	struct spidev_data	*spidev;
+	int			dofree;
 
 	mutex_lock(&device_list_lock);
 	spidev = filp->private_data;
 	filp->private_data = NULL;
 
+	spin_lock_irq(&spidev->spi_lock);
+	/* ... after we unbound from the underlying device? */
+	dofree = (spidev->spi == NULL);
+	spin_unlock_irq(&spidev->spi_lock);
+
 	/* last close? */
 	spidev->users--;
 	if (!spidev->users) {
-		int		dofree;
 
-		spin_lock_irq(&spidev->spi_lock);
-		if (spidev->spi)
-			spidev->speed_hz = spidev->spi->max_speed_hz;
+		kfree(spidev->tx_buffer);
+		spidev->tx_buffer = NULL;
 
-		/* ... after we unbound from the underlying device? */
-		dofree = (spidev->spi == NULL);
-		spin_unlock_irq(&spidev->spi_lock);
+		kfree(spidev->rx_buffer);
+		spidev->rx_buffer = NULL;
 
 		if (dofree)
 			kfree(spidev);
+		else
+			spidev->speed_hz = spidev->spi->max_speed_hz;
 	}
 #ifdef CONFIG_SPI_SLAVE
-	spi_slave_abort(spidev->spi);
+	if (!dofree)
+		spi_slave_abort(spidev->spi);
 #endif
 	mutex_unlock(&device_list_lock);
 
@@ -650,7 +672,6 @@ static const struct of_device_id spidev_dt_ids[] = {
 	{ .compatible = "lineartechnology,ltc2488" },
 	{ .compatible = "ge,achc" },
 	{ .compatible = "semtech,sx1301" },
-	{ .compatible = "qcom,spi-msm-codec-slave" },
 	{},
 };
 MODULE_DEVICE_TABLE(of, spidev_dt_ids);
@@ -745,25 +766,6 @@ static int spidev_probe(struct spi_device *spi)
 		set_bit(minor, minors);
 		list_add(&spidev->device_entry, &device_list);
 	}
-
-	if (!spidev->tx_buffer) {
-		spidev->tx_buffer = kmalloc(bufsiz, GFP_KERNEL);
-		if (!spidev->tx_buffer) {
-			dev_dbg(&spidev->spi->dev, "open/ENOMEM\n");
-			status = -ENOMEM;
-			goto err_find_dev;
-		}
-	}
-
-	if (!spidev->rx_buffer) {
-		spidev->rx_buffer = kmalloc(bufsiz, GFP_KERNEL);
-		if (!spidev->rx_buffer) {
-			dev_dbg(&spidev->spi->dev, "open/ENOMEM\n");
-			status = -ENOMEM;
-			goto err_alloc_rx_buf;
-		}
-	}
-
 	mutex_unlock(&device_list_lock);
 
 	spidev->speed_hz = spi->max_speed_hz;
@@ -771,16 +773,7 @@ static int spidev_probe(struct spi_device *spi)
 	if (status == 0)
 		spi_set_drvdata(spi, spidev);
 	else
-		goto err_dev_status;
-
-	return status;
-err_dev_status:
-	kfree(spidev);
-err_alloc_rx_buf:
-	kfree(spidev->tx_buffer);
-	spidev->tx_buffer = NULL;
-err_find_dev:
-	mutex_unlock(&device_list_lock);
+		kfree(spidev);
 
 	return status;
 }
@@ -789,19 +782,13 @@ static int spidev_remove(struct spi_device *spi)
 {
 	struct spidev_data	*spidev = spi_get_drvdata(spi);
 
+	/* prevent new opens */
+	mutex_lock(&device_list_lock);
 	/* make sure ops on existing fds can abort cleanly */
 	spin_lock_irq(&spidev->spi_lock);
-	kfree(spidev->tx_buffer);
-	spidev->tx_buffer = NULL;
-
-	kfree(spidev->rx_buffer);
-	spidev->rx_buffer = NULL;
-
 	spidev->spi = NULL;
 	spin_unlock_irq(&spidev->spi_lock);
 
-	/* prevent new opens */
-	mutex_lock(&device_list_lock);
 	list_del(&spidev->device_entry);
 	device_destroy(spidev_class, spidev->devt);
 	clear_bit(MINOR(spidev->devt), minors);
