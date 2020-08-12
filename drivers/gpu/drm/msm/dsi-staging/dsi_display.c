@@ -20,8 +20,6 @@
 #include <linux/of_gpio.h>
 #include <linux/err.h>
 
-#include <linux/msm_drm_notify.h>
-
 #include "msm_drv.h"
 #include "sde_connector.h"
 #include "msm_mmu.h"
@@ -47,7 +45,6 @@
 #define MAX_NAME_SIZE	64
 
 #define DSI_CLOCK_BITRATE_RADIX 10
-#define DSI_FOD_HBM_RADIX 10
 #define MAX_TE_SOURCE_ID  2
 #define DSI_READ_WRITE_PANEL_DEBUG 0
 #define AOD_BRIGHTNESS 190
@@ -64,8 +61,6 @@ static const struct of_device_id dsi_display_dt_match[] = {
 	{.compatible = "qcom,dsi-display"},
 	{}
 };
-
-struct dsi_display *primary_display;
 
 static void dsi_display_mask_ctrl_error_interrupts(struct dsi_display *display,
 			u32 mask, bool enable)
@@ -1625,8 +1620,6 @@ int dsi_display_set_power(struct drm_connector *connector,
 {
 	struct dsi_display *display = disp;
 	int rc = 0;
-	struct msm_drm_notifier notify_data;
-	int event = power_mode;
     //static int flag_tp_notify=0;
 	int blank;
 	struct msm_drm_notifier notifier_data;
@@ -1660,32 +1653,31 @@ int dsi_display_set_power(struct drm_connector *connector,
 			dev = connector->dev;
 	}
 
-	notify_data.data = &event;
 
 	switch (power_mode) {
 	case SDE_MODE_DPMS_LP1:
 		pr_info("enter SDE_MODE_DPMS_LP1\n");
 		blank = MSM_DRM_BLANK_POWERDOWN;
 		notifier_data.data = &blank;
-		msm_drm_notifier_call_chain(MSM_DRM_EARLY_EVENT_BLANK, &notify_data);
+		msm_drm_notifier_call_chain(MSM_DRM_EARLY_EVENT_BLANK,
+					&notifier_data);
 		rc = dsi_panel_set_lp1(display->panel);
-		msm_drm_notifier_call_chain(MSM_DRM_EVENT_BLANK, &notify_data);
 		break;
 	case SDE_MODE_DPMS_LP2:
 		pr_info("enter SDE_MODE_DPMS_LP2\n");
 		blank = MSM_DRM_BLANK_POWERDOWN;
 		notifier_data.data = &blank;
-		msm_drm_notifier_call_chain(MSM_DRM_EARLY_EVENT_BLANK, &notify_data);
+		msm_drm_notifier_call_chain(MSM_DRM_EARLY_EVENT_BLANK,
+					&notifier_data);
 		rc = dsi_panel_set_lp2(display->panel);
-		msm_drm_notifier_call_chain(MSM_DRM_EVENT_BLANK, &notify_data);
 		break;
 	case SDE_MODE_DPMS_ON:
 		blank = MSM_DRM_BLANK_UNBLANK;
 		notifier_data.data = &blank;
 		pr_info("enter SDE_MODE_DPMS_NOLP\n");
-		msm_drm_notifier_call_chain(MSM_DRM_EARLY_EVENT_BLANK, &notify_data);
+		msm_drm_notifier_call_chain(MSM_DRM_EARLY_EVENT_BLANK,
+					&notifier_data);
 		rc = dsi_panel_set_nolp(display->panel);
-		msm_drm_notifier_call_chain(MSM_DRM_EVENT_BLANK, &notify_data);
 		break;
 	case SDE_MODE_DPMS_OFF:
 		blank = MSM_DRM_BLANK_POWERDOWN;
@@ -5604,228 +5596,10 @@ error:
 	return rc;
 }
 
-static ssize_t sysfs_fod_hbm_read(struct device *dev,
-	struct device_attribute *attr, char *buf)
-{
-	struct dsi_display *display;
-	struct dsi_panel *panel;
-	int rc = 0;
-
-	display = dev_get_drvdata(dev);
-	if (!display) {
-		pr_err("Invalid display\n");
-		return -EINVAL;
-	}
-
-	panel = display->panel;
-
-	mutex_lock(&panel->panel_lock);
-	rc = snprintf(buf, PAGE_SIZE, "%d\n", panel->fod_hbm_status);
-	mutex_unlock(&panel->panel_lock);
-
-	return rc;
-}
-
-static ssize_t sysfs_fod_hbm_write(struct device *dev,
-	struct device_attribute *attr, const char *buf, size_t count)
-{
-	struct dsi_display *display;
-	struct dsi_panel *panel;
-	int fod_hbm_status;
-	int rc = 0;
-
-	display = dev_get_drvdata(dev);
-	if (!display) {
-		pr_err("Invalid display\n");
-		return -EINVAL;
-	}
-
-	rc = kstrtoint(buf, DSI_FOD_HBM_RADIX, &fod_hbm_status);
-	if (rc) {
-		pr_err("%s: kstrtoint failed. rc=%d\n", __func__, rc);
-		return rc;
-	}
-
-	panel = display->panel;
-
-	mutex_lock(&panel->panel_lock);
-	dsi_panel_set_fod_hbm_backlight(panel, !!fod_hbm_status);
-	mutex_unlock(&panel->panel_lock);
-
-	return count;
-}
-
-static DEVICE_ATTR(fod_hbm, 0644,
-			sysfs_fod_hbm_read,
-			sysfs_fod_hbm_write);
-
-static struct attribute *fod_hbm_fs_attrs[] = {
-	&dev_attr_fod_hbm.attr,
-	NULL,
-};
-static struct attribute_group fod_hbm_fs_attrs_group = {
-	.attrs = fod_hbm_fs_attrs,
-};
-
-static ssize_t sysfs_doze_status_read(struct device *dev,
-	struct device_attribute *attr, char *buf)
-{
-	struct dsi_display *display;
-	struct dsi_panel *panel;
-	bool status;
-
-	display = dev_get_drvdata(dev);
-	if (!display) {
-		pr_err("Invalid display\n");
-		return -EINVAL;
-	}
-
-	panel = display->panel;
-
-	mutex_lock(&panel->panel_lock);
-	status = panel->doze_enabled;
-	mutex_unlock(&panel->panel_lock);
-
-	return snprintf(buf, PAGE_SIZE, "%d\n", status);
-}
-
-static ssize_t sysfs_doze_status_write(struct device *dev,
-	struct device_attribute *attr, const char *buf, size_t count)
-{
-	struct dsi_display *display;
-	struct dsi_panel *panel;
-	bool status;
-	int rc = 0;
-
-	display = dev_get_drvdata(dev);
-	if (!display) {
-		pr_err("Invalid display\n");
-		return -EINVAL;
-	}
-
-	rc = kstrtobool(buf, &status);
-	if (rc) {
-		pr_err("%s: kstrtobool failed. rc=%d\n", __func__, rc);
-		return rc;
-	}
-
-	panel = display->panel;
-
-	mutex_lock(&panel->panel_lock);
-	dsi_panel_set_doze_status(panel, status);
-	mutex_unlock(&panel->panel_lock);
-
-	return count;
-}
-
-static ssize_t sysfs_doze_mode_read(struct device *dev,
-	struct device_attribute *attr, char *buf)
-{
-	enum dsi_doze_mode_type doze_mode;
-	struct dsi_display *display;
-	struct dsi_panel *panel;
-
-	display = dev_get_drvdata(dev);
-	if (!display) {
-		pr_err("Invalid display\n");
-		return -EINVAL;
-	}
-
-	panel = display->panel;
-
-	mutex_lock(&panel->panel_lock);
-	doze_mode = panel->doze_mode;
-	mutex_unlock(&panel->panel_lock);
-
-	return snprintf(buf, PAGE_SIZE, "%d\n", doze_mode);
-}
-
-static ssize_t sysfs_doze_mode_write(struct device *dev,
-	struct device_attribute *attr, const char *buf, size_t count)
-{
-	struct dsi_display *display;
-	struct dsi_panel *panel;
-	int rc = 0;
-	int mode;
-
-	display = dev_get_drvdata(dev);
-	if (!display) {
-		pr_err("Invalid display\n");
-		return -EINVAL;
-	}
-
-	rc = kstrtoint(buf, 10, &mode);
-	if (rc) {
-		pr_err("%s: kstrtoint failed. rc=%d\n", __func__, rc);
-		return rc;
-	}
-
-	if (mode < DSI_DOZE_LPM || mode > DSI_DOZE_HBM) {
-		pr_err("%s: invalid value for doze mode\n", __func__);
-		return -EINVAL;
-	}
-
-	panel = display->panel;
-
-	mutex_lock(&panel->panel_lock);
-	dsi_panel_set_doze_mode(panel, (enum dsi_doze_mode_type) mode);
-	mutex_unlock(&panel->panel_lock);
-
-	return count;
-}
-
-static ssize_t sysfs_fod_ui_read(struct device *dev,
-	struct device_attribute *attr, char *buf)
-{
-	struct dsi_display *display;
-	bool status;
-
-	display = dev_get_drvdata(dev);
-	if (!display) {
-		pr_err("Invalid display\n");
-		return -EINVAL;
-	}
-
-	status = atomic_read(&display->fod_ui);
-
-	return snprintf(buf, PAGE_SIZE, "%d\n", status);
-}
-
-static DEVICE_ATTR(doze_status, 0644,
-			sysfs_doze_status_read,
-			sysfs_doze_status_write);
-
-static DEVICE_ATTR(doze_mode, 0644,
-			sysfs_doze_mode_read,
-			sysfs_doze_mode_write);
-
-static DEVICE_ATTR(fod_ui, 0444,
-			sysfs_fod_ui_read,
-			NULL);
-
-static struct attribute *display_fs_attrs[] = {
-	&dev_attr_doze_status.attr,
-	&dev_attr_doze_mode.attr,
-	&dev_attr_fod_ui.attr,
-	NULL,
-};
-static struct attribute_group display_fs_attrs_group = {
-	.attrs = display_fs_attrs,
-};
-
 static int dsi_display_sysfs_init(struct dsi_display *display)
 {
 	int rc = 0;
 	struct device *dev = &display->pdev->dev;
-
-	rc = sysfs_create_group(&dev->kobj,
-			&fod_hbm_fs_attrs_group);
-	if (rc)
-		pr_err("failed to create fod hbm device attributes");
-
-	rc = sysfs_create_group(&dev->kobj, &display_fs_attrs_group);
-	if (rc)
-		pr_err("failed to create display device attributes");
 
 	if (display->panel->panel_mode == DSI_OP_CMD_MODE)
 		rc = sysfs_create_group(&dev->kobj,
@@ -5845,13 +5619,6 @@ static int dsi_display_sysfs_deinit(struct dsi_display *display)
 
 	return 0;
 
-}
-
-void dsi_display_set_fod_ui(struct dsi_display *display, bool status)
-{
-	struct device *dev = &display->pdev->dev;
-	atomic_set(&display->fod_ui, status);
-	sysfs_notify(&dev->kobj, NULL, "fod_ui");
 }
 
 /**
@@ -6157,7 +5924,6 @@ static void dsi_display_unbind(struct device *dev,
 	}
 
 	atomic_set(&display->clkrate_change_pending, 0);
-	atomic_set(&display->fod_ui, false);
 	(void)dsi_display_sysfs_deinit(display);
 	(void)dsi_display_debugfs_deinit(display);
 
@@ -7213,7 +6979,6 @@ int dsi_display_get_modes(struct dsi_display *display,
 exit:
 	*out_modes = display->modes;
 	rc = 0;
-	primary_display = display;
 
 error:
 	if (rc)
@@ -8601,10 +8366,6 @@ int dsi_display_unprepare(struct dsi_display *display)
 
 	SDE_EVT32(SDE_EVTLOG_FUNC_EXIT);
 	return rc;
-}
-
-struct dsi_display *get_main_display(void) {
-	return primary_display;
 }
 
 static int __init dsi_display_register(void)
