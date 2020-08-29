@@ -726,6 +726,4 @@ int dsi_lowpower_register_client(struct notifier_block *nb);
 
 int dsi_display_param_store(struct dsi_display *display, uint32_t param);
 
-char *dsi_display_get_cmdline_panel_info(void);
-
 #endif /* _DSI_DISPLAY_H_ */
