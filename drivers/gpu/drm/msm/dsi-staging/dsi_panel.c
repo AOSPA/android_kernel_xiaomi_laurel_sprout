@@ -820,6 +820,44 @@ static u32 dsi_panel_get_backlight(struct dsi_panel *panel)
 	return panel->bl_config.bl_level;
 }
 
+int dsi_panel_set_fod_hbm(struct dsi_panel *panel, bool status)
+{
+	int rc = 0;
+	if (status) {
+		if (panel->sansumg_flag) {
+			rc = dsi_panel_set_dimming_brightness(panel, HBM_OFF_DIMMING_OFF,
+					panel->last_bl_lvl);
+			if (rc)
+				pr_err("[%s] failed to send DSI_CMD_SET_DIMMING_DBV cmd"
+						"for HBM_OFF_DIMMING_OFF and brightness %d, rc=%d\n",
+						panel->name, panel->last_bl_lvl, rc);
+
+			rc = dsi_panel_set_dimming_brightness(panel, HBM_ON_DIMMING_OFF,
+					panel->bl_config.bl_max_level);
+			if (rc)
+				pr_err("[%s] failed to send DSI_CMD_SET_DIMMING_DBV cmd"
+						"for HBM_ON_DIMMING_OFF and brightness %d, rc=%d\n",
+						panel->name, panel->bl_config.bl_max_level, rc);
+		} else {
+			rc = dsi_panel_set_dimming_brightness(panel, HBM_OFF_DIMMING_OFF,
+				panel->bl_config.bl_max_level);
+			if (rc)
+				pr_err("[%s] failed to send DSI_CMD_SET_DIMMING_DBV cmd"
+						"for HBM_OFF_DIMMING_OFF and brightness %d, rc=%d\n",
+						panel->name, panel->bl_config.bl_max_level, rc);
+		}
+	} else {
+		rc = dsi_panel_set_dimming_brightness(panel, HBM_OFF_DIMMING_OFF,
+				panel->last_bl_lvl);
+		if (rc)
+			pr_err("[%s] failed to send DSI_CMD_SET_DIMMING_DBV cmd"
+					"for HBM_OFF_DIMMING_OFF and brightness %d, rc=%d\n",
+					panel->name, panel->last_bl_lvl, rc);
+	}
+
+	return rc;
+}
+
 int dsi_panel_set_backlight(struct dsi_panel *panel, u32 bl_lvl)
 {
 	int rc = 0;
