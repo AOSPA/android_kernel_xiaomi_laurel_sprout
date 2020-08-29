@@ -35,10 +35,6 @@
 #include <linux/msm_drm_notify.h>
 #include <linux/notifier.h>
 
-#define to_dsi_bridge(x)  container_of((x), struct dsi_bridge, base)
-
-//static atomic64_t g_param = ATOMIC64_INIT(0);
-
 #define to_dsi_display(x) container_of(x, struct dsi_display, host)
 #define INT_BASE_10 10
 #define NO_OVERRIDE -1
@@ -49,7 +45,6 @@
 #define MAX_NAME_SIZE	64
 
 #define DSI_CLOCK_BITRATE_RADIX 10
-#define DSI_FOD_HBM_RADIX 10
 #define MAX_TE_SOURCE_ID  2
 #define DSI_READ_WRITE_PANEL_DEBUG 0
 #define AOD_BRIGHTNESS 190
@@ -5601,78 +5596,10 @@ error:
 	return rc;
 }
 
-static ssize_t sysfs_fod_hbm_read(struct device *dev,
-	struct device_attribute *attr, char *buf)
-{
-	struct dsi_display *display;
-	struct dsi_panel *panel;
-	int rc = 0;
-
-	display = dev_get_drvdata(dev);
-	if (!display) {
-		pr_err("Invalid display\n");
-		return -EINVAL;
-	}
-
-	panel = display->panel;
-
-	mutex_lock(&panel->panel_lock);
-	rc = snprintf(buf, PAGE_SIZE, "%d\n", panel->fod_hbm_status);
-	mutex_unlock(&panel->panel_lock);
-
-	return rc;
-}
-
-static ssize_t sysfs_fod_hbm_write(struct device *dev,
-	struct device_attribute *attr, const char *buf, size_t count)
-{
-	struct dsi_display *display;
-	struct dsi_panel *panel;
-	int fod_hbm_status;
-	int rc = 0;
-
-	display = dev_get_drvdata(dev);
-	if (!display) {
-		pr_err("Invalid display\n");
-		return -EINVAL;
-	}
-
-	rc = kstrtoint(buf, DSI_FOD_HBM_RADIX, &fod_hbm_status);
-	if (rc) {
-		pr_err("%s: kstrtoint failed. rc=%d\n", __func__, rc);
-		return rc;
-	}
-
-	panel = display->panel;
-
-	mutex_lock(&panel->panel_lock);
-	dsi_panel_set_fod_hbm_backlight(panel, !!fod_hbm_status);
-	mutex_unlock(&panel->panel_lock);
-
-	return count;
-}
-
-static DEVICE_ATTR(fod_hbm, 0644,
-			sysfs_fod_hbm_read,
-			sysfs_fod_hbm_write);
-
-static struct attribute *fod_hbm_fs_attrs[] = {
-	&dev_attr_fod_hbm.attr,
-	NULL,
-};
-static struct attribute_group fod_hbm_fs_attrs_group = {
-	.attrs = fod_hbm_fs_attrs,
-};
-
 static int dsi_display_sysfs_init(struct dsi_display *display)
 {
 	int rc = 0;
 	struct device *dev = &display->pdev->dev;
-
-	rc = sysfs_create_group(&dev->kobj,
-			&fod_hbm_fs_attrs_group);
-	if (rc)
-		pr_err("failed to create fod hbm device attributes");
 
 	if (display->panel->panel_mode == DSI_OP_CMD_MODE)
 		rc = sysfs_create_group(&dev->kobj,
@@ -8133,45 +8060,6 @@ int dsi_display_pre_commit(void *display,
 	return rc;
 }
 
-ssize_t dsi_display_read_panel_info(struct drm_connector *connector,
-			char *buf)
-{
-	struct dsi_display *display = NULL;
-	struct dsi_bridge *c_bridge = NULL;
-	char *pname = NULL;
-	ssize_t ret = 0;
-
-	pname = dsi_display_get_cmdline_panel_info();
-	if (pname) {
-		ret = snprintf(buf, PAGE_SIZE, "panel_name=%s\n", pname);
-	} else {
-		if (!connector || !connector->encoder || !connector->encoder->bridge) {
-			pr_err("Invalid connector/encoder/bridge ptr\n");
-			return -EINVAL;
-		}
-
-		c_bridge =  to_dsi_bridge(connector->encoder->bridge);
-		display = c_bridge->display;
-		if (!display || !display->panel) {
-			pr_err("Invalid display/panel ptr\n");
-			return -EINVAL;
-		}
-
-		if (display->name) {
-			/* find the last occurrence of a character in a string */
-			pname = strrchr(display->name, ',');
-			if (pname && *pname)
-				ret = snprintf(buf, PAGE_SIZE, "panel_name=%s\n", ++pname);
-			else
-				ret = snprintf(buf, PAGE_SIZE, "panel_name=%s\n", display->name);
-		} else {
-			ret = snprintf(buf, PAGE_SIZE, "panel_name=%s\n", "null");
-		}
-	}
-
-	return ret;
-}
-
 int dsi_display_enable(struct dsi_display *display)
 {
 	int rc = 0;
@@ -8496,36 +8384,6 @@ static void __exit dsi_display_unregister(void)
 	dsi_ctrl_drv_unregister();
 	dsi_phy_drv_unregister();
 }
-
-char *dsi_display_get_cmdline_panel_info(void)
-{
-	char *buffer = NULL, *buffer_dup = NULL;
-	char *pname = NULL;
-	char *panel_info = NULL;
-
-	buffer = kstrdup(dsi_display_primary, GFP_KERNEL);
-	if (!buffer)
-		return NULL;
-	buffer_dup = buffer;
-
-	buffer = strrchr(buffer, ',');
-	if (buffer && *buffer) {
-		pname = ++buffer;
-	} else {
-		goto exit;
-	}
-
-	buffer = strrchr(pname, ':');
-	if (buffer)
-		*buffer = '\0';
-
-	panel_info = kstrdup(pname, GFP_KERNEL);
-
-exit:
-	kfree(buffer_dup);
-	return panel_info;
-}
-
 module_param_string(dsi_display0, dsi_display_primary, MAX_CMDLINE_PARAM_LEN,
 								0600);
 MODULE_PARM_DESC(dsi_display0,
