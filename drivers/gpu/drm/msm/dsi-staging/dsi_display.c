@@ -422,18 +422,18 @@ int dsi_display_param_store(struct dsi_display *display,uint32_t param)
 		pr_info("hbm fod on\n");
 		//cancel_delayed_work(&panel->dimming_work);
 		//panel->dimming_enabled = false;
+		panel->fod_backlight_flag = true;
 		panel->fod_hbm_enabled = true;
 		if(panel->sansumg_flag)
        {
         rc = dsi_panel_set_dimming_brightness(panel, HBM_OFF_DIMMING_OFF,
 							panel->last_bl_lvl);
-        rc = dsi_panel_set_dimming_brightness(panel, HBM_ON_DIMMING_OFF,
+        rc = dsi_panel_set_dimming_brightness(panel, HBM_ON_DIMMING_ON,
 				panel->bl_config.bl_max_level);
        }
 		else
-		rc = dsi_panel_set_dimming_brightness(panel, HBM_OFF_DIMMING_OFF,
+		rc = dsi_panel_set_dimming_brightness(panel, HBM_ON_DIMMING_OFF,
 			  panel->bl_config.bl_max_level);
-		//panel->fod_hbm_enabled = true;
 		hbm_monotor_finger=1;
 		break;
 	case DISPPARAM_HBM_FOD2NORM:
@@ -495,7 +495,6 @@ int dsi_display_param_store(struct dsi_display *display,uint32_t param)
 	default:
 		break;
 	}
-	
     temp = param &(~0x00D00000);
 	if (temp == 0)
 	{
