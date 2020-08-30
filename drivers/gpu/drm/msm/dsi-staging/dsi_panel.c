@@ -655,8 +655,8 @@ static int dsi_panel_update_backlight(struct dsi_panel *panel,
 	dsi = &panel->mipi_device;
 
 	if (bl_lvl == 0) {
-            rc = dsi_panel_set_dimming_brightness(panel, HBM_OFF_DIMMING_OFF, bl_lvl);
-            panel->skip_dimming_on = true;
+            rc = dsi_panel_set_dimming_brightness(panel, HBM_OFF_DIMMING_ON, bl_lvl);
+            panel->skip_dimming_on = false;
 	} else {
             if(panel->skip_dimming_on == true) {
                 rc = dsi_panel_set_dimming_brightness(panel, HBM_OFF_DIMMING_OFF, bl_lvl);
