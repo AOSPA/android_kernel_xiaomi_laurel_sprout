@@ -143,6 +143,7 @@ struct kgsl_iommu {
 	struct kgsl_memdesc setstate;
 	atomic_t clk_enable_count;
 	struct clk *clks[KGSL_IOMMU_MAX_CLKS];
+	struct regulator *vddcx_regulator;
 	unsigned int micro_mmu_ctrl;
 	struct kgsl_memdesc smmu_info;
 	unsigned int version;
