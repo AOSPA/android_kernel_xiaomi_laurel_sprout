@@ -567,6 +567,7 @@ struct param_info {
 	char name[80];
 	int q_val;
 };
+#endif
 
 //MULTIPLE = 3.33,  rdc/(1<<27) * MULTIPLE = [min, max] ohm
 //
@@ -588,7 +589,6 @@ struct param_info {
 #define EAR_RDC_MAX  (1370391217) //34 / 3.33 * (1<<27)
 #define EAR_RDC_DEFAULT (1168863097)  // 29 / 3.33 * 134217728
 */
-#endif
 
 static struct {
 	bool l_calib_stat;
@@ -770,6 +770,7 @@ static int max989xx_calib_get(uint32_t* calib_value, int ch)
 	return found;
 }
 
+#ifdef CONFIG_DEBUG_FS
 static int max989xx_calib_save (uint32_t calib_value, int ch)
 {
 	struct file *pfile = NULL;
@@ -805,6 +806,7 @@ static int max989xx_calib_save (uint32_t calib_value, int ch)
 
 	return ret;
 }
+#endif
 
 static inline bool rdc_check_valid(uint32_t rdc, int ch)
 {
