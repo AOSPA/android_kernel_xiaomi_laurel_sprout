@@ -444,9 +444,6 @@ static void update_msoc(struct qpnp_qg *chip)
 	last_ibat = sign_extend32(last_ibat, 15);
 	last_ibat = I_RAW_TO_UA(last_ibat);
 
-	//pr_err("last_ibat=%d,%d,chip->catch_up_soc=%d,chip->msoc=%d\n",
-	//				last_ibat,input_present,chip->catch_up_soc,chip->msoc);
-
 	if (chip->catch_up_soc > chip->msoc) {
 		/* SOC increased */
 		chip->catch_up_soc = chip->msoc;

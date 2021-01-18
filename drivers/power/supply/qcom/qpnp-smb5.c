@@ -237,7 +237,7 @@ struct smb5 {
 };
 extern void smb5_set_calling_current(struct smb_charger *chg);
 
-static int __debug_mask = PR_MISC | PR_INTERRUPT;
+static int __debug_mask;
 module_param_named(
 	debug_mask, __debug_mask, int, 0600
 );
@@ -455,10 +455,7 @@ static int smb5_parse_dt(struct smb5 *chip)
 				"qcom,fv-max-uv", &chip->dt.batt_profile_fv_uv);
 	if (rc < 0)
 		chip->dt.batt_profile_fv_uv = -EINVAL;
-	#ifdef CONFIG_DISABLE_TEMP_PROTECT
-		chip->dt.batt_profile_fcc_ua = 1500000;
-		chip->dt.batt_profile_fv_uv = 4100000;
-	#endif
+
 	rc = of_property_read_u32(node,
 				"qcom,usb-icl-ua", &chip->dt.usb_icl_ua);
 	if (rc < 0)
@@ -801,7 +798,6 @@ static int smb5_usb_get_prop(struct power_supply *psy,
 		rc = smblib_get_prop_input_current_max(chg, val);
 		break;
 	case POWER_SUPPLY_PROP_TYPE:
-		//val->intval = POWER_SUPPLY_TYPE_USB_PD;
 		if(chg->usb_type_show)
 			val->intval = chg->real_charger_type;
 		else
@@ -1621,9 +1617,6 @@ static int smb5_batt_get_prop(struct power_supply *psy,
 		break;
 	case POWER_SUPPLY_PROP_HEALTH:
 		rc = smblib_get_prop_batt_health(chg, val);
-	#ifdef CONFIG_DISABLE_TEMP_PROTECT
-		val->intval = POWER_SUPPLY_HEALTH_GOOD;
-	#endif
 		break;
 	case POWER_SUPPLY_PROP_PRESENT:
 		rc = smblib_get_prop_batt_present(chg, val);
@@ -1636,12 +1629,6 @@ static int smb5_batt_get_prop(struct power_supply *psy,
 		break;
 	case POWER_SUPPLY_PROP_CAPACITY:
 		rc = smblib_get_prop_batt_capacity(chg, val);
-	#ifdef CONFIG_DISABLE_TEMP_PROTECT
-		if (val->intval < 4) {
-			//pr_debug("WINGTECH disable temp protect version; real capacity:%d\n",val->intval);
-			val->intval = 3;
-		}
-	#endif
 		break;
 	case POWER_SUPPLY_PROP_CHARGE_CONTROL_LIMIT:
 		rc = smblib_get_prop_system_temp_level(chg, val);
@@ -1679,9 +1666,6 @@ static int smb5_batt_get_prop(struct power_supply *psy,
 	case POWER_SUPPLY_PROP_CURRENT_NOW:
 		rc = smblib_get_prop_from_bms(chg,
 				POWER_SUPPLY_PROP_CURRENT_NOW, val);
-		//if (!rc)
-		//	val->intval *= (-1);
-
 		break;
 	case POWER_SUPPLY_PROP_CURRENT_QNOVO:
 		val->intval = get_client_vote_locked(chg->fcc_votable,
@@ -1703,10 +1687,6 @@ static int smb5_batt_get_prop(struct power_supply *psy,
 		else
 			rc = smblib_get_prop_from_bms(chg,
 						POWER_SUPPLY_PROP_TEMP, val);
-#ifdef CONFIG_DISABLE_TEMP_PROTECT
-		pr_debug("WINGTECH disable temp protect version; real temp:%d\n",val->intval);
-		val->intval = 250;
-#endif
 		break;
 	case POWER_SUPPLY_PROP_TECHNOLOGY:
 		val->intval = POWER_SUPPLY_TECHNOLOGY_LIPO;
@@ -1749,8 +1729,6 @@ static int smb5_batt_get_prop(struct power_supply *psy,
 		val->intval = 0;
 		break;
 	case POWER_SUPPLY_PROP_CHARGE_FULL:
-		//rc = smblib_get_prop_from_bms(chg,
-		//		POWER_SUPPLY_PROP_CHARGE_FULL, val);
 		val->intval = 4030000;
 		break;
 	case POWER_SUPPLY_PROP_FORCE_RECHARGE:
@@ -2809,13 +2787,8 @@ static int smb5_init_hw(struct smb5 *chip)
 		return rc;
 	}
 
-	#if 0
-	rc = smblib_write(chg, AICL_RERUN_TIME_CFG_REG,
-				AICL_RERUN_TIME_12S_VAL);
-	#else
 	rc = smblib_write(chg, AICL_RERUN_TIME_CFG_REG,
 				AICL_RERUN_TIME_180S_VAL);
-	#endif
 
 	if (rc < 0) {
 		dev_err(chg->dev,
@@ -3008,12 +2981,6 @@ static int smb5_init_hw(struct smb5 *chip)
 		dev_err(chg->dev, "Couldn't set hw jeita rc=%d\n", rc);
 		return rc;
 	}
-	#ifdef CONFIG_DISABLE_TEMP_PROTECT
-	rc = smblib_masked_write(chg, JEITA_EN_CFG_REG, 0xFF,0);
-	if (rc < 0) {
-			dev_err(chg->dev, "DISABLE_TEMP_PROTECT s/w jeita error rc=%d\n", rc);
-	}
-	#endif
 
 	rc = smblib_masked_write(chg, DCDC_ENG_SDCDC_CFG5_REG,
 			ENG_SDCDC_BAT_HPWR_MASK, BOOST_MODE_THRESH_3P6_V);

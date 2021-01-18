@@ -31,7 +31,6 @@
 #include <linux/moduleparam.h>
 extern struct smb_charger *wt_smbchip;
 int usb_check_in_state = 0;
-//extern void tpd_usb_plugin(int plugin);
 
 #define smblib_err(chg, fmt, ...)		\
 	pr_err("%s: %s: " fmt, chg->name,	\
@@ -1572,7 +1571,6 @@ int smblib_get_irq_status(struct smb_charger *chg,
 #define BATT_1545_FCC	3000000
 #define BATT_4555_FCC	1970000
 #define BATT_COLD_HOT_FCC	0
-//extern bool usbchg_lcd_is_on(void);
 void batt_temp_charging_current(struct smb_charger *chg, int bat_temp)
 {
 	int bat_current = 0, rc = 0;
@@ -2122,7 +2120,6 @@ int smblib_get_prop_batt_status(struct smb_charger *chg,
 			val->intval = POWER_SUPPLY_STATUS_DISCHARGING;
 			break;
 		}
-		//return rc;
 		goto out;
 	}
 
@@ -2148,7 +2145,6 @@ int smblib_get_prop_batt_status(struct smb_charger *chg,
 
 	if (is_charging_paused(chg)) {
 		val->intval = POWER_SUPPLY_STATUS_CHARGING;
-		//return 0;
 		goto out;
 	}
 
@@ -2159,19 +2155,16 @@ int smblib_get_prop_batt_status(struct smb_charger *chg,
 	if (is_client_vote_enabled_locked(chg->usb_icl_votable,
 						CHG_TERMINATION_VOTER)) {
 		val->intval = POWER_SUPPLY_STATUS_FULL;
-		//return 0;
 		goto out;
 	}
 
 	if (val->intval != POWER_SUPPLY_STATUS_CHARGING){
-		//return 0;
 		goto out;
 	}
 
 	if (!usb_online && dc_online
 		&& chg->fake_batt_status == POWER_SUPPLY_STATUS_FULL) {
 		val->intval = POWER_SUPPLY_STATUS_FULL;
-		//return 0;
 		goto out;
 	}
 
@@ -2649,7 +2642,6 @@ int smblib_dp_dm(struct smb_charger *chg, int val)
 		 * Pre-emptively increment pulse count to enable the setting
 		 * of FSW prior to increasing voltage.
 		 */
-
 		if(chg->pulse_cnt >= PULSE_CNT_MAX)
 			break;
 
@@ -2670,13 +2662,8 @@ int smblib_dp_dm(struct smb_charger *chg, int val)
 			chg->pulse_cnt--;
 		}
 
-	#if 0
-		smblib_dbg(chg, PR_PARALLEL, "DP_DM_DP_PULSE rc=%d cnt=%d\n",
-				rc, chg->pulse_cnt);
-	#else
 		smblib_dbg(chg, PR_INTERRUPT, "DP_DM_DP_PULSE rc=%d cnt=%d\n",
 				rc, chg->pulse_cnt);
-	#endif
 		break;
 	case POWER_SUPPLY_DP_DM_DM_PULSE:
 		rc = smblib_dm_pulse(chg);
@@ -4222,18 +4209,10 @@ static int smblib_handle_usb_current(struct smb_charger *chg,
 				 * Valid FLOAT charger, report the current
 				 * based of Rp.
 				 */
-				#if 0
-					typec_mode = smblib_get_prop_typec_mode(chg);
-					rp_ua = get_rp_based_dcp_current(chg,
-									typec_mode);
-					rc = vote(chg->usb_icl_votable,
-							SW_ICL_MAX_VOTER, true, rp_ua);
-				#else
 					typec_mode = 0;
 					rp_ua = 0;
 					rc = vote(chg->usb_icl_votable,
 							SW_ICL_MAX_VOTER, true, FLOAT_CURRENT_UA);
-				#endif
 				if (rc < 0)
 					return rc;
 			} else {
@@ -5066,7 +5045,6 @@ irqreturn_t chg_state_change_irq_handler(int irq, void *data)
 	if (chg->wa_flags & CHG_TERMINATION_WA)
 		smblib_eval_chg_termination(chg, stat);
 
-	//power_supply_changed(chg->batt_psy);
 	vote(chg->awake_votable, USBOV_DELAY_VOTER, true, 0);
 	schedule_delayed_work(&chg->usbov_delay_report_work,
 			msecs_to_jiffies(DELAY_REPORT_PERIOD_MS));
@@ -5347,12 +5325,6 @@ void smblib_usb_plugin_hard_reset_locked(struct smb_charger *chg)
 					vbus_rising ? "attached" : "detached");
 }
 
-#ifdef GET_RTC_TIME
-extern int get_rtc_time(unsigned long *rtc_time);
-#define CHECK_ERROR_COUNT	2
-#define RESET_TIME_S	3
-#define ERROR_TIME_S	1
-#endif
 #define PL_DELAY_MS	30000
 #define USB_CURRENT_CHECK_MS 20000
 void smblib_usb_plugin_locked(struct smb_charger *chg)
@@ -5362,10 +5334,6 @@ void smblib_usb_plugin_locked(struct smb_charger *chg)
 	bool vbus_rising;
 	struct smb_irq_data *data;
 	struct storm_watch *wdata;
-#ifdef GET_RTC_TIME
-	static unsigned long rtc_in = 0, rtc_out = 0;
-	static int insert_count = 0;
-#endif
 
 	rc = smblib_read(chg, USBIN_BASE + INT_RT_STS_OFFSET, &stat);
 	if (rc < 0) {
@@ -5378,41 +5346,8 @@ void smblib_usb_plugin_locked(struct smb_charger *chg)
 						chg->chg_freq.freq_removal);
 
 	if (vbus_rising) {
-#ifdef GET_RTC_TIME
-		rc = get_rtc_time(&rtc_in);
-		if (rc < 0) {
-			pr_err("Failed to read RTC1 time rc=%d\n", rc);
-		}
-
-		/* Charger insert and remove in 1 Second detect as wrong */
-		if ((rtc_in - rtc_out) <= ERROR_TIME_S)
-			insert_count ++;
-		else if ((rtc_in - rtc_out) >= RESET_TIME_S){
-			chg->hvdcp_disable = false;
-			insert_count = 0;
-			rc = smblib_masked_write(chg, USBIN_OPTIONS_1_CFG_REG,
-					HVDCP_EN_BIT, HVDCP_EN_BIT);
-			if (rc < 0) {
-				smblib_err(chg, "WT could not write HVDCP_EN_BIT 1\n");
-			}
-		}
-		/* 3 times error try to disable HVDCP */
-		if (insert_count >= CHECK_ERROR_COUNT){
-			chg->hvdcp_disable = true;
-
-			rc = smblib_masked_write(chg, USBIN_OPTIONS_1_CFG_REG,
-				HVDCP_EN_BIT, 0);
-			if (rc < 0) {
-				smblib_err(chg, "WT could not write HVDCP_EN_BIT 0\n");
-			}
-			smblib_err(chg, "WT disable hvdcp\n");
-		}
-		smblib_err(chg, "WT attached count=%d,hvdcp_disable=%d,time_in_ount=%ld, %ld\n",
-			insert_count,chg->hvdcp_disable,rtc_in,rtc_out);
-#endif
 		vote(chg->awake_votable, DETACH_DETECT_VOTER, false, 0);
 		usb_check_in_state = 1;
-		//tpd_usb_plugin(1);
 		rc = smblib_request_dpdm(chg, true);
 		if (rc < 0)
 			smblib_err(chg, "Couldn't to enable DPDM rc=%d\n", rc);
@@ -5436,16 +5371,6 @@ void smblib_usb_plugin_locked(struct smb_charger *chg)
 					msecs_to_jiffies(PL_DELAY_MS));
 	} else {
 		usb_check_in_state = 0;
-
-#ifdef GET_RTC_TIME
-		rc = get_rtc_time(&rtc_out);
-		if (rc < 0) {
-			pr_err("Failed to read rtc_out time rc=%d\n", rc);
-		}
-		//smblib_err(chg, "WT detached time rtc_in=%ld,rtc_out=%ld\n", rtc_in,rtc_out);
-#endif
-
-		//tpd_usb_plugin(0);
 
 		/* Disable SW Thermal Regulation */
 		rc = smblib_set_sw_thermal_regulation(chg, false);
@@ -7167,11 +7092,6 @@ static void period_update(struct work_struct *work)
 			POWER_SUPPLY_PROP_CURRENT_NOW, &val);
 	c_batt = val.intval/1000;
 
-#if 1
-	smblib_get_prop_usb_voltage_now(chip, &val);
-	usb_v = val.intval/1000;
-#endif
-
 	smblib_get_prop_batt_capacity(chip, &val);
 	cap = val.intval;
 	//smblib_get_prop_batt_status(chip, &val);
@@ -7184,11 +7104,6 @@ static void period_update(struct work_struct *work)
 	smblib_get_prop_usb_present(chip, &val);
 	usb_p = val.intval;
 	printk_counter++;
-
-	#ifndef CONFIG_DISABLE_TEMP_PROTECT
-	if(usb_p)
-		batt_temp_charging_current(chip,temp);
-	#endif
 
 	/*if heatbeat_ms is bigger than 500ms,must output the logs directly.*/
 	if ((period_ms>=500)|| (old_cap != cap) || (old_status != status)

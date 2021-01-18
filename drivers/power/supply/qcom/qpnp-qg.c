@@ -43,7 +43,7 @@
 #include "qg-battery-profile.h"
 #include "qg-defs.h"
 
-static int qg_debug_mask = QG_DEBUG_PON;
+static int qg_debug_mask;
 module_param_named(
 	debug_mask, qg_debug_mask, int, 0600
 );
@@ -2989,11 +2989,6 @@ static int qg_load_battery_profile(struct qpnp_qg *chip)
 	 */
 	chip->bp.fastchg_curr_ma = min(chip->max_fcc_limit_ma,
 					chip->bp.fastchg_curr_ma);
-
-	#ifdef CONFIG_DISABLE_TEMP_PROTECT
-		chip->bp.float_volt_uv = 4100000;
-		chip->bp.fastchg_curr_ma = 1500;
-	#endif
 
 	rc = of_property_read_u32(profile_node, "qcom,qg-batt-profile-ver",
 				&chip->bp.qg_profile_version);

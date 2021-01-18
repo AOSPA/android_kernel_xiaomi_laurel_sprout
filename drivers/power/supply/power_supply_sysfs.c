@@ -101,9 +101,7 @@ static ssize_t power_supply_show_property(struct device *dev,
 	const ptrdiff_t off = attr - power_supply_attrs;
 	union power_supply_propval value;
 
-	//if (off == POWER_SUPPLY_PROP_TYPE) {
 	if ((off == POWER_SUPPLY_PROP_TYPE)&&(strcmp(psy->desc->name, "usb"))){
-		//dev_err(dev, "WT desc->name=%s\n",psy->desc->name);
 		value.intval = psy->desc->type;
 	} else {
 		ret = power_supply_get_property(psy, off, &value);
