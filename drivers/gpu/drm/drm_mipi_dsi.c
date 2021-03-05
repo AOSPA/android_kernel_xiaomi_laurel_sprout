@@ -34,7 +34,6 @@
 #include <linux/slab.h>
 
 #include <video/mipi_display.h>
-#include "dsi_panel.h"
 
 /**
  * DOC: dsi helpers

@@ -169,9 +169,6 @@ struct sde_connector_ops {
 	int (*set_backlight)(struct drm_connector *connector,
 			void *display, u32 bl_lvl);
 
-	int (*set_panel_register)(struct drm_connector *connector,
-				void *display, int value);
-
 	/**
 	 * soft_reset - perform a soft reset on the connector
 	 * @display: Pointer to private display structure
@@ -247,10 +244,6 @@ struct sde_connector_ops {
 	 */
 	int (*check_status)(struct drm_connector *connector, void *display,
 					bool te_check_override);
-
-
-	int (*check_white_status)(struct drm_connector *connector, void *display,
-						bool te_check_override);
 
 	/**
 	 * cmd_transfer - Transfer command to the connected display panel
