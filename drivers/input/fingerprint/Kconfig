@@ -3,8 +3,3 @@ config FINGERPRINT_GOODIX_FOD
 	depends on GOODIX_FINGERPRINT_F9S
 	help
 	  Say Y here to enable support for retrieving self-test reports.
-
-	  If unsure, say N.
-
-	  To compile this driver as a module, choose M here.
-
