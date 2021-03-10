@@ -16,71 +16,56 @@
  *
  */
 
-/*****************************************************************************
-*
-* File Name: focaltech_gestrue.c
-*
-* Author: Focaltech Driver Team
-*
-* Created: 2016-08-08
-*
-* Abstract:
-*
-* Reference:
-*
-*****************************************************************************/
+/*********************************/
+/* Author: Focaltech Driver Team */
+/* Created: 2016-08-08           */
+/* Version: v1.0                 */
+/*********************************/
 
-/*****************************************************************************
-* 1.Included header files
-*****************************************************************************/
+/*********************************
+* Included header files.
+*********************************/
 #include "focaltech_core.h"
-//#if FTS_GESTURE_EN
-/******************************************************************************
-* Private constant and macro definitions using #define
-*****************************************************************************/
-#define KEY_GESTURE_U                           KEY_WAKEUP
-#define KEY_GESTURE_UP                          KEY_UP
-#define KEY_GESTURE_DOWN                        KEY_DOWN
-#define KEY_GESTURE_LEFT                        KEY_LEFT
-#define KEY_GESTURE_RIGHT                       KEY_RIGHT
-#define KEY_GESTURE_O                           KEY_O
-#define KEY_GESTURE_E                           KEY_E
-#define KEY_GESTURE_M                           KEY_M
-#define KEY_GESTURE_L                           KEY_L
-#define KEY_GESTURE_W                           KEY_W
-#define KEY_GESTURE_S                           KEY_S
-#define KEY_GESTURE_V                           KEY_V
-#define KEY_GESTURE_C                           KEY_C
-#define KEY_GESTURE_Z                           KEY_Z
 
-#define KEY_FODLEAVE                            0x153
-#define KEY_FOD                                 0x152
-#define KEY_FOD_TOUCH                           KEY_FOD
-#define KEY_FOD_TOUCH_LEAVE                     KEY_FODLEAVE
+#define KEY_GESTURE_U KEY_WAKEUP
+#define KEY_GESTURE_UP KEY_UP
+#define KEY_GESTURE_DOWN KEY_DOWN
+#define KEY_GESTURE_LEFT KEY_LEFT
+#define KEY_GESTURE_RIGHT KEY_RIGHT
+#define KEY_GESTURE_O KEY_O
+#define KEY_GESTURE_E KEY_E
+#define KEY_GESTURE_M KEY_M
+#define KEY_GESTURE_L KEY_L
+#define KEY_GESTURE_W KEY_W
+#define KEY_GESTURE_S KEY_S
+#define KEY_GESTURE_V KEY_V
+#define KEY_GESTURE_C KEY_C
+#define KEY_GESTURE_Z KEY_Z
 
-#define GESTURE_LEFT                            0x20
-#define GESTURE_RIGHT                           0x21
-#define GESTURE_UP                              0x22
-#define GESTURE_DOWN                            0x23
-#define GESTURE_DOUBLECLICK                     0x24
-#define GESTURE_CLICK                           0x25
-#define GESTURE_O                               0x30
-#define GESTURE_W                               0x31
-#define GESTURE_M                               0x32
-#define GESTURE_E                               0x33
-#define GESTURE_L                               0x44
-#define GESTURE_S                               0x46
-#define GESTURE_V                               0x54
-#define GESTURE_Z                               0x41
-#define GESTURE_C                               0x34
+#define KEY_FODLEAVE 0x153
+#define KEY_FOD 0x152
+#define KEY_FOD_TOUCH KEY_FOD
+#define KEY_FOD_TOUCH_LEAVE KEY_FODLEAVE
 
-#define FOD_TOUCH                               0x26
-#define FOD_TOUCH_LEAVE                         0x27
+#define GESTURE_LEFT 0x20
+#define GESTURE_RIGHT 0x21
+#define GESTURE_UP 0x22
+#define GESTURE_DOWN 0x23
+#define GESTURE_DOUBLECLICK 0x24
+#define GESTURE_CLICK 0x25
+#define GESTURE_O 0x30
+#define GESTURE_W 0x31
+#define GESTURE_M 0x32
+#define GESTURE_E 0x33
+#define GESTURE_L 0x44
+#define GESTURE_S 0x46
+#define GESTURE_V 0x54
+#define GESTURE_Z 0x41
+#define GESTURE_C 0x34
 
+#define FOD_TOUCH 0x26
+#define FOD_TOUCH_LEAVE 0x27
 
-/*****************************************************************************
-* Private enumerations, structures and unions using typedef
-*****************************************************************************/
 /*
 * gesture_id    - mean which gesture is recognised
 * point_num     - points number of this gesture
@@ -110,21 +95,11 @@ struct fts_gesture_fod_st {
 	u8 ucFodEvent;
 };
 
-/*****************************************************************************
-* Static variables
-*****************************************************************************/
 static struct fts_gesture_st fts_gesture_data;
 static struct fts_gesture_fod_st fts_gerture_fod_data;
 
-/*****************************************************************************
-* Global variable or extern global variabls/functions
-*****************************************************************************/
-
-/*****************************************************************************
-* Static function prototypes
-*****************************************************************************/
-static ssize_t fts_gesture_show(
-	struct device *dev, struct device_attribute *attr, char *buf)
+static ssize_t fts_gesture_show(struct device *dev,
+				struct device_attribute *attr, char *buf)
 {
 	int count = 0;
 	u8 val = 0;
@@ -133,16 +108,16 @@ static ssize_t fts_gesture_show(
 	mutex_lock(&input_dev->mutex);
 	fts_read_reg(FTS_REG_GESTURE_EN, &val);
 	count = snprintf(buf, PAGE_SIZE, "Gesture Mode:%s\n",
-					 fts_gesture_data.mode ? "On" : "Off");
+			 fts_gesture_data.mode ? "On" : "Off");
 	count += snprintf(buf + count, PAGE_SIZE, "Reg(0xD0)=%d\n", val);
 	mutex_unlock(&input_dev->mutex);
 
 	return count;
 }
 
-static ssize_t fts_gesture_store(
-	struct device *dev,
-	struct device_attribute *attr, const char *buf, size_t count)
+static ssize_t fts_gesture_store(struct device *dev,
+				 struct device_attribute *attr, const char *buf,
+				 size_t count)
 {
 	struct input_dev *input_dev = fts_data->input_dev;
 	mutex_lock(&input_dev->mutex);
@@ -175,8 +150,8 @@ void fts_gesture_enable(bool enable)
 	mutex_unlock(&input_dev->mutex);
 }
 
-static ssize_t fts_gesture_buf_show(
-	struct device *dev, struct device_attribute *attr, char *buf)
+static ssize_t fts_gesture_buf_show(struct device *dev,
+				    struct device_attribute *attr, char *buf)
 {
 	int count = 0;
 	int i = 0;
@@ -184,15 +159,17 @@ static ssize_t fts_gesture_buf_show(
 	struct fts_gesture_st *gesture = &fts_gesture_data;
 
 	mutex_lock(&input_dev->mutex);
-	count = snprintf(buf, PAGE_SIZE, "Gesture ID:%d\n", gesture->gesture_id);
+	count = snprintf(buf, PAGE_SIZE, "Gesture ID:%d\n",
+			 gesture->gesture_id);
 	count += snprintf(buf + count, PAGE_SIZE, "Gesture PointNum:%d\n",
-					  gesture->point_num);
+			  gesture->point_num);
 	count += snprintf(buf + count, PAGE_SIZE, "Gesture Points Buffer:\n");
 
 	/* save point data,max:6 */
 	for (i = 0; i < FTS_GESTURE_POINTS_MAX; i++) {
 		count += snprintf(buf + count, PAGE_SIZE, "%3d(%4d,%4d) ", i,
-						  gesture->coordinate_x[i], gesture->coordinate_y[i]);
+				  gesture->coordinate_x[i],
+				  gesture->coordinate_y[i]);
 		if ((i + 1) % 4 == 0)
 			count += snprintf(buf + count, PAGE_SIZE, "\n");
 	}
@@ -202,26 +179,17 @@ static ssize_t fts_gesture_buf_show(
 	return count;
 }
 
-static ssize_t fts_gesture_buf_store(
-	struct device *dev,
-	struct device_attribute *attr, const char *buf, size_t count)
+static ssize_t fts_gesture_buf_store(struct device *dev,
+				     struct device_attribute *attr,
+				     const char *buf, size_t count)
 {
 	return -EPERM;
 }
 
-
-/* sysfs gesture node
- *   read example: cat  fts_gesture_mode       ---read gesture mode
- *   write example:echo 1 > fts_gesture_mode   --- write gesture mode to 1
- *
- */
 static DEVICE_ATTR(fts_gesture_mode, S_IRUGO | S_IWUSR, fts_gesture_show,
-				   fts_gesture_store);
-/*
- *   read example: cat fts_gesture_buf        --- read gesture buf
- */
-static DEVICE_ATTR(fts_gesture_buf, S_IRUGO | S_IWUSR,
-				   fts_gesture_buf_show, fts_gesture_buf_store);
+		   fts_gesture_store);
+static DEVICE_ATTR(fts_gesture_buf, S_IRUGO | S_IWUSR, fts_gesture_buf_show,
+		   fts_gesture_buf_store);
 
 static struct attribute *fts_gesture_mode_attrs[] = {
 	&dev_attr_fts_gesture_mode.attr,
@@ -274,7 +242,7 @@ static void fts_gesture_report(struct input_dev *input_dev, int gesture_id)
 
 		break;
 	case GESTURE_CLICK:
-		gesture =  KEY_GOTO;
+		gesture = KEY_GOTO;
 		break;
 	case GESTURE_O:
 		gesture = KEY_GESTURE_O;
@@ -300,10 +268,10 @@ static void fts_gesture_report(struct input_dev *input_dev, int gesture_id)
 	case GESTURE_Z:
 		gesture = KEY_GESTURE_Z;
 		break;
-	case  GESTURE_C:
+	case GESTURE_C:
 		gesture = KEY_GESTURE_C;
 		break;
-	case  FOD_TOUCH_LEAVE:
+	case FOD_TOUCH_LEAVE:
 		gesture = KEY_FOD_TOUCH_LEAVE;
 		break;
 
@@ -348,7 +316,6 @@ int fts_gesture_readdata(struct fts_ts_data *ts_data, u8 *data)
 		return 1;
 	}
 
-
 	ret = fts_read_reg(FTS_REG_GESTURE_EN, &buf[0]);
 	if ((ret < 0) || (buf[0] != ENABLE)) {
 		FTS_DEBUG("gesture not enable in fw, don't process gesture");
@@ -370,16 +337,16 @@ int fts_gesture_readdata(struct fts_ts_data *ts_data, u8 *data)
 	memset(gesture->coordinate_y, 0, FTS_GESTURE_POINTS_MAX * sizeof(u16));
 	gesture->gesture_id = buf[2];
 	gesture->point_num = buf[3];
-	FTS_DEBUG("gesture_id=%d, point_num=%d",
-			  gesture->gesture_id, gesture->point_num);
+	FTS_DEBUG("gesture_id=%d, point_num=%d", gesture->gesture_id,
+		  gesture->point_num);
 
 	/* save point data,max:6 */
 	for (i = 0; i < FTS_GESTURE_POINTS_MAX; i++) {
 		index = 4 * i + 4;
-		gesture->coordinate_x[i] = (u16)(((buf[0 + index] & 0x0F) << 8)
-						                 + buf[1 + index]);
-		gesture->coordinate_y[i] = (u16)(((buf[2 + index] & 0x0F) << 8)
-						                 + buf[3 + index]);
+		gesture->coordinate_x[i] =
+			(u16)(((buf[0 + index] & 0x0F) << 8) + buf[1 + index]);
+		gesture->coordinate_y[i] =
+			(u16)(((buf[2 + index] & 0x0F) << 8) + buf[3 + index]);
 	}
 
 	/* report gesture to OS */
@@ -394,7 +361,6 @@ int fts_fod_readdata(struct fts_ts_data *ts_data, u8 *data)
 	u8 buf[FTS_GESTURE_FOD_DATA_LEN] = { 0 };
 	struct input_dev *input_dev = ts_data->input_dev;
 	struct fts_gesture_fod_st *gesture_fod = &fts_gerture_fod_data;
-
 
 	ret = fts_read_reg(FTS_REG_FOD_EN, &buf[0]);
 	if ((ret < 0) || (buf[0] < 1) || (buf[0] > 3)) {
@@ -412,14 +378,14 @@ int fts_fod_readdata(struct fts_ts_data *ts_data, u8 *data)
 	gesture_fod->ucFodID = buf[1];
 	gesture_fod->ucFodArea = buf[2];
 	gesture_fod->ucTouchArea = buf[3];
-	gesture_fod->ucFodCoordinate_x = (u16)(((buf[4 + index] & 0x0F) << 8)
-						                 + buf[5 + index]);
-	gesture_fod->ucFodCoordinate_y = (u16)(((buf[6 + index] & 0x0F) << 8)
-						                 + buf[7 + index]);
+	gesture_fod->ucFodCoordinate_x =
+		(u16)(((buf[4 + index] & 0x0F) << 8) + buf[5 + index]);
+	gesture_fod->ucFodCoordinate_y =
+		(u16)(((buf[6 + index] & 0x0F) << 8) + buf[7 + index]);
 	gesture_fod->ucFodEvent = buf[8];
 
 	/* report gesture_fod_id to OS */
-	switch (gesture_fod->ucFodID){
+	switch (gesture_fod->ucFodID) {
 	case 0x24:
 		input_report_key(input_dev, KEY_WAKEUP, 1);
 		input_sync(input_dev);
@@ -441,31 +407,44 @@ int fts_fod_readdata(struct fts_ts_data *ts_data, u8 *data)
 				input_sync(input_dev);
 				ts_data->overlap_area = 100;
 			}
-			if (ts_data->old_point_id != gesture_fod->ucFodPointID) {
+			if (ts_data->old_point_id !=
+			    gesture_fod->ucFodPointID) {
 				if (ts_data->old_point_id == 0xff)
-					ts_data->old_point_id = gesture_fod->ucFodPointID;
+					ts_data->old_point_id =
+						gesture_fod->ucFodPointID;
 				else {
 					ts_data->point_id_changed = true;
 				}
 			}
 			ts_data->finger_in_fod = true;
 			if (!ts_data->suspended) {
-				pr_debug("FTS:touch is not in suspend state or finger report is not enabled, report x,y value by touch nomal report\n");
+				pr_debug(
+					"FTS:touch is not in suspend state or finger report is not enabled, report x,y value by touch nomal report\n");
 				mutex_unlock(&ts_data->report_mutex);
 				return -EINVAL;
 			}
 
 			if (!ts_data->fod_finger_skip) {
-				input_mt_slot(input_dev,gesture_fod->ucFodPointID);
-				input_mt_report_slot_state(input_dev, MT_TOOL_FINGER, 1);
+				input_mt_slot(input_dev,
+					      gesture_fod->ucFodPointID);
+				input_mt_report_slot_state(input_dev,
+							   MT_TOOL_FINGER, 1);
 				input_report_key(input_dev, BTN_TOUCH, 1);
 				input_report_key(input_dev, BTN_TOOL_FINGER, 1);
-				input_report_abs(input_dev, ABS_MT_POSITION_X, gesture_fod->ucFodCoordinate_x);
-				input_report_abs(input_dev, ABS_MT_POSITION_Y, gesture_fod->ucFodCoordinate_y);
-				input_report_abs(input_dev, ABS_MT_TOUCH_MAJOR, gesture_fod->ucTouchArea);
-				input_report_abs(input_dev, ABS_MT_WIDTH_MAJOR, ts_data->overlap_area);
-				input_report_abs(input_dev, ABS_MT_WIDTH_MINOR, ts_data->overlap_area);
-				input_report_abs(input_dev, ABS_MT_PRESSURE, gesture_fod->ucTouchArea);
+				input_report_abs(
+					input_dev, ABS_MT_POSITION_X,
+					gesture_fod->ucFodCoordinate_x);
+				input_report_abs(
+					input_dev, ABS_MT_POSITION_Y,
+					gesture_fod->ucFodCoordinate_y);
+				input_report_abs(input_dev, ABS_MT_TOUCH_MAJOR,
+						 gesture_fod->ucTouchArea);
+				input_report_abs(input_dev, ABS_MT_WIDTH_MAJOR,
+						 ts_data->overlap_area);
+				input_report_abs(input_dev, ABS_MT_WIDTH_MINOR,
+						 ts_data->overlap_area);
+				input_report_abs(input_dev, ABS_MT_PRESSURE,
+						 gesture_fod->ucTouchArea);
 				input_sync(input_dev);
 			}
 			mutex_unlock(&ts_data->report_mutex);
@@ -478,14 +457,17 @@ int fts_fod_readdata(struct fts_ts_data *ts_data, u8 *data)
 			ts_data->fod_finger_skip = false;
 			ts_data->old_point_id = 0xff;
 			ts_data->point_id_changed = false;
-			FTS_INFO("set fod finger skip false, set old_point_id as default value\n");
-			if (!ts_data->suspended ) {
-				pr_debug("FTS_UP:touch is not in suspend state or finger report is not enabled, report x,y value by touch nomal report\n");
+			FTS_INFO(
+				"set fod finger skip false, set old_point_id as default value\n");
+			if (!ts_data->suspended) {
+				pr_debug(
+					"FTS_UP:touch is not in suspend state or finger report is not enabled, report x,y value by touch nomal report\n");
 				return -EINVAL;
 			}
 			mutex_lock(&ts_data->report_mutex);
 			input_mt_slot(input_dev, gesture_fod->ucFodPointID);
-			input_mt_report_slot_state(input_dev, MT_TOOL_FINGER, 0);
+			input_mt_report_slot_state(input_dev, MT_TOOL_FINGER,
+						   0);
 			input_report_key(input_dev, BTN_TOUCH, 0);
 			input_report_abs(input_dev, ABS_MT_TRACKING_ID, -1);
 			input_sync(input_dev);
@@ -505,7 +487,8 @@ int fts_fod_readdata(struct fts_ts_data *ts_data, u8 *data)
 
 void fts_gesture_recovery(struct fts_ts_data *ts_data)
 {
-	if ((ENABLE == fts_gesture_data.mode) && (ENABLE == fts_gesture_data.active)) {
+	if ((ENABLE == fts_gesture_data.mode) &&
+	    (ENABLE == fts_gesture_data.active)) {
 		FTS_DEBUG("gesture recovery...");
 		fts_write_reg(0xD2, 0xFF);
 		fts_write_reg(0xD5, 0xFF);
@@ -519,7 +502,7 @@ void fts_gesture_recovery(struct fts_ts_data *ts_data)
 void fts_fod_recovery(struct fts_ts_data *ts_data)
 {
 	FTS_DEBUG("FOD recovery...");
-	if(fts_data->suspended)
+	if (fts_data->suspended)
 		fts_write_reg(FTS_REG_GESTURE_EN, ENABLE);
 }
 
@@ -540,9 +523,11 @@ int fts_gesture_suspend(struct fts_ts_data *ts_data)
 		FTS_ERROR("set double_wakeup fail");
 	}
 	for (i = 0; i < 5; i++) {
-		if(ts_data->lpwg_mode){
+		if (ts_data->lpwg_mode) {
 			double_val |= (1 << 0);
-			FTS_INFO("CF register double_wakeup's bit set 1, CF register = %x", double_val);
+			FTS_INFO(
+				"CF register double_wakeup's bit set 1, CF register = %x",
+				double_val);
 			ret = fts_write_reg(FTS_REG_FOD_EN, double_val);
 			if (ret < 0) {
 				FTS_ERROR("set double_wakeup fail");

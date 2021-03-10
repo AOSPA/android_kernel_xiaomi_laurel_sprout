@@ -51,7 +51,7 @@ static int fts_ft5452_upgrade(u8 *buf, u32 len)
 
 	int i = 0;
 	u8 wbuf[7] = { 0 };
-	u8 reg_val[4] = {0};
+	u8 reg_val[4] = { 0 };
 
 	if (NULL == buf) {
 		FTS_ERROR("fw buf is null");
@@ -97,12 +97,12 @@ static int fts_ft5452_upgrade(u8 *buf, u32 len)
 	/* write app */
 	start_addr = upgrade_func_ft5452.appoff;
 	ecc_in_host = fts_flash_write_buf(start_addr, buf, len, 1);
-	if (ecc_in_host < 0 ) {
+	if (ecc_in_host < 0) {
 		FTS_ERROR("lcd initial code write fail");
 		goto fw_reset;
 	}
 
-	FTS_INFO( "**********read out checksum**********");
+	FTS_INFO("**********read out checksum**********");
 
 	/* check sum init */
 	wbuf[0] = FTS_CMD_ECC_INIT;
@@ -136,7 +136,8 @@ static int fts_ft5452_upgrade(u8 *buf, u32 len)
 		wbuf[0] = FTS_CMD_FLASH_STATUS;
 		reg_val[0] = reg_val[1] = 0x00;
 		fts_read(wbuf, 1, reg_val, 2);
-		FTS_DEBUG("[UPGRADE]: reg_val[0]=%02x reg_val[0]=%02x!!", reg_val[0], reg_val[1]);
+		FTS_DEBUG("[UPGRADE]: reg_val[0]=%02x reg_val[0]=%02x!!",
+			  reg_val[0], reg_val[1]);
 		if ((0xF0 == reg_val[0]) && (0x55 == reg_val[1])) {
 			break;
 		}
@@ -147,7 +148,7 @@ static int fts_ft5452_upgrade(u8 *buf, u32 len)
 	wbuf[0] = FTS_CMD_ECC_READ;
 	ret = fts_read(wbuf, 1, reg_val, 1);
 	if (ret < 0) {
-		FTS_ERROR( "ecc read cmd write fail");
+		FTS_ERROR("ecc read cmd write fail");
 		return ret;
 	}
 	ecc_in_tp = reg_val[0];
@@ -177,7 +178,7 @@ fw_reset:
 }
 
 struct upgrade_func upgrade_func_ft5452 = {
-	.ctype = {0x81},
+	.ctype = { 0x81 },
 	.fwveroff = 0x010E,
 	.fwcfgoff = 0x1FFB0,
 	.appoff = 0x0000,
