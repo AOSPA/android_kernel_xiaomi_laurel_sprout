@@ -1,27 +1,20 @@
-/************************************************************************
-* Copyright (C) 2012-2019, Focaltech Systems (R)£¬All Rights Reserved.
-* Copyright (C) 2020 XiaoMi, Inc.
-*
-* File Name: focaltech_flash.h
-*
-* Author: Focaltech Driver Team
-*
-* Created: 2016-08-07
-*
-* Abstract:
-*
-************************************************************************/
+/*********************************/
+/* Author: Focaltech Driver Team */
+/* Created: 2016-08-08           */
+/* Version: v1.0                 */
+/*********************************/
+
 #ifndef __LINUX_FOCALTECH_FLASH_H__
 #define __LINUX_FOCALTECH_FLASH_H__
 
-/*****************************************************************************
-* 1.Included header files
-*****************************************************************************/
+/*********************************/
+/* Included header files.
+/*********************************/
 #include "focaltech_core.h"
 
-/*****************************************************************************
-* Private constant and macro definitions using #define
-*****************************************************************************/
+/*********************************/
+/* Definitions
+/**********************************/
 #define FTS_CMD_RESET                               0x07
 #define FTS_ROMBOOT_CMD_WRITE                       0xAE
 #define FTS_ROMBOOT_CMD_START_APP                   0x08
@@ -119,9 +112,6 @@ enum ECC_CHECK_MODE {
     ECC_CHECK_MODE_CRC16,
 };
 
-/*****************************************************************************
-* Private enumerations, structures and unions using typedef
-*****************************************************************************/
 /* IC info */
 struct upgrade_func {
     u64 ctype[FTX_MAX_COMPATIBLE_TYPE];
@@ -169,14 +159,8 @@ struct fts_upgrade {
     u32 lic_length;
 };
 
-/*****************************************************************************
-* Global variable or extern global variabls/functions
-*****************************************************************************/
 extern struct upgrade_func upgrade_func_ft5452;
 
-/*****************************************************************************
-* Static function prototypes
-*****************************************************************************/
 int fts_fwupg_reset_in_boot(void);
 int fts_fwupg_enter_into_boot(void);
 int fts_fwupg_erase(u32 delay);
@@ -184,4 +168,5 @@ int fts_fwupg_ecc_cal(u32 saddr, u32 len);
 int fts_flash_write_buf(u32 saddr, u8 *buf, u32 len, u32 delay);
 int fts_fwupg_upgrade(struct fts_upgrade *upg);
 int fts_flash_read(u32 addr, u8 *buf, u32 len);
-#endif
+
+#endif /*__LINUX_FOCALTECH_FLASH_H__*/

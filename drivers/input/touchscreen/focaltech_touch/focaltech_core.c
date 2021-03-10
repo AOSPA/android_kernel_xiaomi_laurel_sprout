@@ -15,51 +15,36 @@
  * GNU General Public License for more details.
  *
  */
-/*****************************************************************************
-*
-* File Name: focaltech_core.c
-*
-* Author: Focaltech Driver Team
-*
-* Created: 2016-08-08
-*
-* Abstract: entrance for focaltech ts driver
-*
-* Version: V1.0
-*
-*****************************************************************************/
 
-/*****************************************************************************
-* Included header files
-*****************************************************************************/
+/*********************************/
+/* Author: Focaltech Driver Team */
+/* Created: 2016-08-08           */
+/* Version: v1.0                 */
+/*********************************/
+
+/*********************************/
+/* Included header files.
+/*********************************/
 #include <linux/module.h>
 #include <linux/init.h>
 #include <linux/of.h>
 #include <linux/of_device.h>
 #include <linux/of_gpio.h>
 #include <linux/of_irq.h>
-#if defined(CONFIG_FB)
 #include <linux/msm_drm_notify.h>
-#elif defined(CONFIG_HAS_EARLYSUSPEND)
-#include <linux/earlysuspend.h>
-#define FTS_SUSPEND_LEVEL 1     /* Early-suspend level */
-#endif
 #include "focaltech_core.h"
 #include "focaltech_flash.h"
 
-
-/*****************************************************************************
-* Private constant and macro definitions using #define
-*****************************************************************************/
+/*********************************/
+/* Definitions.
+/*********************************/
 #define FTS_DRIVER_NAME                     "fts_ts"
-#define INTERVAL_READ_REG                   200  /* unit:ms */
-#define TIMEOUT_READ_REG                    2000 /* unit:ms */
-#if FTS_POWER_SOURCE_CUST_EN
+#define INTERVAL_READ_REG                   200
+#define TIMEOUT_READ_REG                    2000
 #define FTS_VTG_MIN_UV                      2600000
 #define FTS_VTG_MAX_UV                      3300000
 #define FTS_I2C_VTG_MIN_UV                  1800000
 #define FTS_I2C_VTG_MAX_UV                  1800000
-#endif
 
 #define INPUT_EVENT_START			0
 #define INPUT_EVENT_SENSITIVE_MODE_OFF		0
@@ -78,20 +63,10 @@
 #define INPUT_EVENT_PALM_ON		13
 #define INPUT_EVENT_END				13
 
-/*****************************************************************************
-* Global variable or extern global variabls/functions
-*****************************************************************************/
 struct fts_ts_data *fts_data;
-/*****************************************************************************
-* Static function prototypes
-*****************************************************************************/
 static int fts_ts_clear_buffer(void);
 static int fts_ts_suspend(struct device *dev);
 static int fts_ts_resume(struct device *dev);
-#ifdef USB_CHARGE_DETECT
-int b_usb_plugin = 0;
-int ctp_is_probe = 0;
-#endif
 
 /*****************************************************************************
 *  Name: fts_wait_tp_to_valid
@@ -101,24 +76,6 @@ int ctp_is_probe = 0;
 *  Output:
 *  Return: return 0 if tp valid, otherwise return error code
 *****************************************************************************/
-#ifdef USB_CHARGE_DETECT
-	void tpd_usb_plugin(int plugin)
-	{
-		int ret = -1;
-		b_usb_plugin = plugin;
-
-		if(!ctp_is_probe)
-		{
-			return;
-		}
-		FTS_INFO("aaFts usb detect: %s %d.\n",__func__,b_usb_plugin);
-		ret = fts_write_reg(0x8B, b_usb_plugin);
-		if ( ret < 0 )
-		{
-			FTS_INFO("Fts usb detect write err: %s %d.\n",__func__,b_usb_plugin);
-		}
-	}
-#endif
 int fts_wait_tp_to_valid(void)
 {
 	int ret = 0;
@@ -159,13 +116,8 @@ void fts_tp_state_recovery(struct fts_ts_data *ts_data)
 	/* recover TP cover state 0xC1 */
 	fts_ex_mode_recovery(ts_data);
 	/* recover TP gesture state 0xD0 */
-#if FTS_GESTURE_EN
 	fts_gesture_recovery(ts_data);
-#endif
-
-#if FTS_FOD_EN
 	fts_fod_recovery(ts_data);
-#endif
 
 	FTS_FUNC_EXIT();
 }
@@ -369,7 +321,7 @@ static int fts_get_ic_information(struct fts_ts_data *ts_data)
 }
 
 /*****************************************************************************
-*  Reprot related
+*  Report related
 *****************************************************************************/
 static void fts_show_touch_buffer(u8 *data, int datalen)
 {
@@ -399,22 +351,16 @@ static void fts_show_touch_buffer(u8 *data, int datalen)
 void fts_release_all_finger(void)
 {
 	struct input_dev *input_dev = fts_data->input_dev;
-#if FTS_MT_PROTOCOL_B_EN
 	u32 finger_count = 0;
 	u32 max_touches = fts_data->pdata->max_touch_number;
-#endif
 
 	FTS_FUNC_ENTER();
 	fts_data->finger_in_fod = false;
 	fts_data->overlap_area = 0;
-#if FTS_MT_PROTOCOL_B_EN
 	for (finger_count = 0; finger_count < max_touches; finger_count++) {
 		input_mt_slot(input_dev, finger_count);
 		input_mt_report_slot_state(input_dev, MT_TOOL_FINGER, false);
 	}
-#else
-	input_mt_sync(input_dev);
-#endif
 	input_report_key(input_dev, BTN_TOUCH, 0);
 	input_sync(input_dev);
 
@@ -465,7 +411,6 @@ static int fts_input_report_key(struct fts_ts_data *data, int index)
 	return -EINVAL;
 }
 
-#if FTS_MT_PROTOCOL_B_EN
 static int fts_input_report_b(struct fts_ts_data *data)
 {
 	int i = 0;
@@ -492,12 +437,6 @@ static int fts_input_report_b(struct fts_ts_data *data)
 		if (EVENT_DOWN(events[i].flag)) {
 			input_mt_report_slot_state(data->input_dev, MT_TOOL_FINGER, true);
 
-#if FTS_REPORT_PRESSURE_EN
-			if (events[i].p <= 0) {
-				events[i].p = 0x3f;
-			}
-			input_report_abs(data->input_dev, ABS_MT_PRESSURE, events[i].p);
-#endif
 			if (events[i].area <= 0) {
 				events[i].area = 0x09;
 			}
@@ -567,72 +506,6 @@ static int fts_input_report_b(struct fts_ts_data *data)
 	return 0;
 }
 
-#else
-static int fts_input_report_a(struct fts_ts_data *data)
-{
-	int i = 0;
-	int touchs = 0;
-	bool va_reported = false;
-	struct ts_event *events = data->events;
-
-	for (i = 0; i < data->touch_point; i++) {
-		if (fts_input_report_key(data, i) == 0) {
-			continue;
-		}
-
-		va_reported = true;
-		if (EVENT_DOWN(events[i].flag)) {
-			input_report_abs(data->input_dev, ABS_MT_TRACKING_ID, events[i].id);
-#if FTS_REPORT_PRESSURE_EN
-			if (events[i].p <= 0) {
-				events[i].p = 0x3f;
-			}
-			input_report_abs(data->input_dev, ABS_MT_PRESSURE, events[i].p);
-#endif
-			if (events[i].area <= 0) {
-				events[i].area = 0x09;
-			}
-			input_report_abs(data->input_dev, ABS_MT_TOUCH_MAJOR, events[i].area);
-
-			input_report_abs(data->input_dev, ABS_MT_POSITION_X, events[i].x);
-			input_report_abs(data->input_dev, ABS_MT_POSITION_Y, events[i].y);
-
-			input_mt_sync(data->input_dev);
-
-			if ((data->log_level >= 2) ||
-				((1 == data->log_level) && (FTS_TOUCH_DOWN == events[i].flag))) {
-				FTS_DEBUG("[A]P%d(%d, %d)[p:%d,tm:%d] DOWN!",
-						  events[i].id,
-						  events[i].x, events[i].y,
-						  events[i].p, events[i].area);
-			}
-			touchs++;
-		}
-	}
-
-	/* last point down, current no point but key */
-	if (data->touchs && !touchs) {
-		va_reported = true;
-	}
-	data->touchs = touchs;
-
-	if (va_reported) {
-		if (EVENT_NO_DOWN(data)) {
-			if (data->log_level >= 1) {
-				FTS_DEBUG("[A]Points All Up!");
-			}
-			input_report_key(data->input_dev, BTN_TOUCH, 0);
-			input_mt_sync(data->input_dev);
-		} else {
-			input_report_key(data->input_dev, BTN_TOUCH, 1);
-		}
-	}
-
-	input_sync(data->input_dev);
-	return 0;
-}
-#endif
-
 static int fts_read_touchdata(struct fts_ts_data *data)
 {
 	int ret;
@@ -641,7 +514,6 @@ static int fts_read_touchdata(struct fts_ts_data *data)
 
 	memset(buf, 0xFF, data->pnt_buf_size);
 
-#if FTS_FOD_EN
 	if (0 == fts_fod_readdata(data, NULL)) {
 		FTS_INFO("succuss to get FOD data in irq handler");
 		ret = fts_read_reg(FTS_REG_INT_ACK, &reg_value);
@@ -653,7 +525,6 @@ static int fts_read_touchdata(struct fts_ts_data *data)
 		}
 
 	}
-#endif
 
 	buf[0] = 0x00;
 	ret = fts_read(buf, 1, buf, data->pnt_buf_size);
@@ -739,28 +610,14 @@ static void fts_irq_read_report(void)
 {
 	int ret = 0;
 	struct fts_ts_data *ts_data = fts_data;
-#if FTS_ESDCHECK_EN
-	fts_esdcheck_set_intr(1);
-#endif
-
-#if FTS_POINT_REPORT_CHECK_EN
-	fts_prc_queue_work(ts_data);
-#endif
 
 	ret = fts_read_parse_touchdata(ts_data);
 	if (ret == 0) {
 		mutex_lock(&ts_data->report_mutex);
-#if FTS_MT_PROTOCOL_B_EN
 		fts_input_report_b(ts_data);
-#else
-		fts_input_report_a(ts_data);
-#endif
 		mutex_unlock(&ts_data->report_mutex);
 	}
 
-#if FTS_ESDCHECK_EN
-	fts_esdcheck_set_intr(0);
-#endif
 }
 
 static irqreturn_t fts_irq_handler(int irq, void *data)
@@ -783,7 +640,6 @@ static int fts_irq_registration(struct fts_ts_data *ts_data)
 
 	return ret;
 }
-#if FTS_GESTURE_EN
 static void fts_switch_mode_work(struct work_struct *work)
 {
 	struct fts_mode_switch *ms = container_of(work, struct fts_mode_switch, switch_mode_work);
@@ -857,7 +713,6 @@ int fts_input_event(struct input_dev *dev, unsigned int type, unsigned int code,
 
 	return 0;
 }
-#endif
 
 static int fts_input_init(struct fts_ts_data *ts_data)
 {
@@ -878,10 +733,7 @@ static int fts_input_init(struct fts_ts_data *ts_data)
 
 	input_dev->id.bustype = BUS_I2C;
 	input_dev->dev.parent = ts_data->dev;
-#if FTS_GESTURE_EN
 	input_dev->event = fts_input_event;
-#endif
-
 	input_set_drvdata(input_dev, ts_data);
 
 	__set_bit(EV_SYN, input_dev->evbit);
@@ -896,17 +748,10 @@ static int fts_input_init(struct fts_ts_data *ts_data)
 			input_set_capability(input_dev, EV_KEY, pdata->keys[key_num]);
 	}
 
-#if FTS_MT_PROTOCOL_B_EN
 	input_mt_init_slots(input_dev, pdata->max_touch_number, INPUT_MT_DIRECT);
-#else
-	input_set_abs_params(input_dev, ABS_MT_TRACKING_ID, 0, 0x0F, 0, 0);
-#endif
 	input_set_abs_params(input_dev, ABS_MT_POSITION_X, pdata->x_min, pdata->x_max, 0, 0);
 	input_set_abs_params(input_dev, ABS_MT_POSITION_Y, pdata->y_min, pdata->y_max, 0, 0);
 	input_set_abs_params(input_dev, ABS_MT_TOUCH_MAJOR, 0, 0xFF, 0, 0);
-#if FTS_REPORT_PRESSURE_EN
-	input_set_abs_params(input_dev, ABS_MT_PRESSURE, 0, 0xFF, 0, 0);
-#endif
 
 	ret = input_register_device(input_dev);
 	if (ret) {
@@ -949,9 +794,6 @@ static int fts_report_buffer_init(struct fts_ts_data *ts_data)
 }
 
 #if FTS_POWER_SOURCE_CUST_EN
-/*****************************************************************************
-* Power Control
-*****************************************************************************/
 #if FTS_PINCTRL_EN
 static int fts_pinctrl_init(struct fts_ts_data *ts)
 {
@@ -1138,11 +980,6 @@ static int fts_power_source_init(struct fts_ts_data *ts_data)
 		}
 	}
 
-#if FTS_PINCTRL_EN
-	fts_pinctrl_init(ts_data);
-	fts_pinctrl_select_normal(ts_data);
-#endif
-
 	ts_data->power_disabled = true;
 	ret = fts_power_source_ctrl(ts_data, ENABLE);
 	if (ret) {
@@ -1155,9 +992,6 @@ static int fts_power_source_init(struct fts_ts_data *ts_data)
 
 static int fts_power_source_exit(struct fts_ts_data *ts_data)
 {
-#if FTS_PINCTRL_EN
-	fts_pinctrl_select_release(ts_data);
-#endif
 
 	fts_power_source_ctrl(ts_data, DISABLE);
 
@@ -1180,9 +1014,6 @@ static int fts_power_source_suspend(struct fts_ts_data *ts_data)
 {
 	int ret = 0;
 
-#if FTS_PINCTRL_EN
-	fts_pinctrl_select_suspend(ts_data);
-#endif
 
 	ret = fts_power_source_ctrl(ts_data, DISABLE);
 	if (ret < 0) {
@@ -1196,9 +1027,6 @@ static int fts_power_source_resume(struct fts_ts_data *ts_data)
 {
 	int ret = 0;
 
-#if FTS_PINCTRL_EN
-	fts_pinctrl_select_normal(ts_data);
-#endif
 
 	ret = fts_power_source_ctrl(ts_data, ENABLE);
 	if (ret < 0) {
@@ -1377,7 +1205,6 @@ static int fts_parse_dt(struct device *dev, struct fts_ts_platform_data *pdata)
 	return 0;
 }
 
-#if defined(CONFIG_FB)
 static void fts_resume_work(struct work_struct *work)
 {
 	struct fts_ts_data *ts_data = container_of(work, struct fts_ts_data,
@@ -1430,25 +1257,6 @@ static int fb_notifier_callback(struct notifier_block *self,
 
 	return 0;
 }
-#elif defined(CONFIG_HAS_EARLYSUSPEND)
-static void fts_ts_early_suspend(struct early_suspend *handler)
-{
-	struct fts_ts_data *ts_data = container_of(handler, struct fts_ts_data,
-						          early_suspend);
-
-	fts_ts_suspend(ts_data->dev);
-}
-
-static void fts_ts_late_resume(struct early_suspend *handler)
-{
-	struct fts_ts_data *ts_data = container_of(handler, struct fts_ts_data,
-						          early_suspend);
-
-	fts_ts_resume(ts_data->dev);
-}
-#endif
-
-
 
 static int fts_ts_probe_entry(struct fts_ts_data *ts_data)
 {
@@ -1489,9 +1297,7 @@ static int fts_ts_probe_entry(struct fts_ts_data *ts_data)
 	spin_lock_init(&ts_data->irq_lock);
 	mutex_init(&ts_data->report_mutex);
 	mutex_init(&ts_data->bus_lock);
-#ifdef FTS_FOD_EN
 	mutex_init(&ts_data->fod_mutex);
-#endif
 	/* Init communication interface */
 	fts_bus_init(ts_data);
 
@@ -1513,13 +1319,11 @@ static int fts_ts_probe_entry(struct fts_ts_data *ts_data)
 		goto err_gpio_config;
 	}
 
-#if FTS_POWER_SOURCE_CUST_EN
 	ret = fts_power_source_init(ts_data);
 	if (ret) {
 		FTS_ERROR("fail to get power(regulator)");
 		goto err_power_init;
 	}
-#endif
 
 #if (!FTS_CHIP_IDC)
 	fts_reset_proc(200);
@@ -1531,52 +1335,15 @@ static int fts_ts_probe_entry(struct fts_ts_data *ts_data)
 		goto err_irq_req;
 	}
 
-#if FTS_APK_NODE_EN
-	ret = fts_create_apk_debug_channel(ts_data);
-	if (ret) {
-		FTS_ERROR("create apk debug node fail");
-	}
-#endif
-
-#if FTS_SYSFS_NODE_EN
-	ret = fts_create_sysfs(ts_data);
-	if (ret) {
-		FTS_ERROR("create sysfs node fail");
-	}
-#endif
-
-#if FTS_POINT_REPORT_CHECK_EN
-	ret = fts_point_report_check_init(ts_data);
-	if (ret) {
-		FTS_ERROR("init point report check fail");
-	}
-#endif
-
 	ret = fts_ex_mode_init(ts_data);
 	if (ret) {
 		FTS_ERROR("init glove/cover/charger fail");
 	}
 
-#if FTS_GESTURE_EN
 	ret = fts_gesture_init(ts_data);
 	if (ret) {
 		FTS_ERROR("init gesture fail");
 	}
-#endif
-
-#if FTS_TEST_EN
-	ret = fts_test_init(ts_data);
-	if (ret) {
-		FTS_ERROR("init production test fail");
-	}
-#endif
-
-#if FTS_ESDCHECK_EN
-	ret = fts_esdcheck_init(ts_data);
-	if (ret) {
-		FTS_ERROR("init esd check fail");
-	}
-#endif
 
 	ret = fts_irq_registration(ts_data);
 	if (ret) {
@@ -1588,14 +1355,6 @@ static int fts_ts_probe_entry(struct fts_ts_data *ts_data)
 	if (ret) {
 		FTS_ERROR("init fw upgrade fail");
 	}
-#ifdef USB_CHARGE_DETECT
-	if(ctp_is_probe == 0)
-	{
-		fts_write_reg(0x8B, b_usb_plugin);
-		ctp_is_probe =1;
-	}
-#endif
-#if defined(CONFIG_FB)
 	if (ts_data->ts_workqueue) {
 		INIT_WORK(&ts_data->resume_work, fts_resume_work);
 	}
@@ -1604,20 +1363,12 @@ static int fts_ts_probe_entry(struct fts_ts_data *ts_data)
 	if (ret) {
 		FTS_ERROR("[FB]Unable to register fb_notifier: %d", ret);
 	}
-#elif defined(CONFIG_HAS_EARLYSUSPEND)
-	ts_data->early_suspend.level = EARLY_SUSPEND_LEVEL_BLANK_SCREEN + FTS_SUSPEND_LEVEL;
-	ts_data->early_suspend.suspend = fts_ts_early_suspend;
-	ts_data->early_suspend.resume = fts_ts_late_resume;
-	register_early_suspend(&ts_data->early_suspend);
-#endif
 	FTS_FUNC_EXIT();
 	return 0;
 
 err_irq_req:
-#if FTS_POWER_SOURCE_CUST_EN
 err_power_init:
 	fts_power_source_exit(ts_data);
-#endif
 	if (gpio_is_valid(ts_data->pdata->reset_gpio))
 		gpio_free(ts_data->pdata->reset_gpio);
 	if (gpio_is_valid(ts_data->pdata->irq_gpio))
@@ -1643,33 +1394,11 @@ static int fts_ts_remove_entry(struct fts_ts_data *ts_data)
 {
 	FTS_FUNC_ENTER();
 
-#if FTS_POINT_REPORT_CHECK_EN
-	fts_point_report_check_exit(ts_data);
-#endif
-
-#if FTS_APK_NODE_EN
-	fts_release_apk_debug_channel(ts_data);
-#endif
-
-#if FTS_SYSFS_NODE_EN
-	fts_remove_sysfs(ts_data);
-#endif
-
 	fts_ex_mode_exit(ts_data);
 
 	fts_fwupg_exit(ts_data);
 
-#if FTS_TEST_EN
-	fts_test_exit(ts_data);
-#endif
-
-#if FTS_ESDCHECK_EN
-	fts_esdcheck_exit(ts_data);
-#endif
-
-#if FTS_GESTURE_EN
 	fts_gesture_exit(ts_data);
-#endif
 
 	fts_bus_exit(ts_data);
 
@@ -1679,12 +1408,8 @@ static int fts_ts_remove_entry(struct fts_ts_data *ts_data)
 	if (ts_data->ts_workqueue)
 		destroy_workqueue(ts_data->ts_workqueue);
 
-#if defined(CONFIG_FB)
 	if (msm_drm_unregister_client(&ts_data->fb_notif))
 		FTS_ERROR("Error occurred while unregistering msm_drm_notifier.");
-#elif defined(CONFIG_HAS_EARLYSUSPEND)
-	unregister_early_suspend(&ts_data->early_suspend);
-#endif
 
 	if (gpio_is_valid(ts_data->pdata->reset_gpio))
 		gpio_free(ts_data->pdata->reset_gpio);
@@ -1692,9 +1417,7 @@ static int fts_ts_remove_entry(struct fts_ts_data *ts_data)
 	if (gpio_is_valid(ts_data->pdata->irq_gpio))
 		gpio_free(ts_data->pdata->irq_gpio);
 
-#if FTS_POWER_SOURCE_CUST_EN
 	fts_power_source_exit(ts_data);
-#endif
 
 	kfree_safe(ts_data->point_buf);
 	kfree_safe(ts_data->events);
@@ -1745,16 +1468,12 @@ static int fts_ts_suspend(struct device *dev)
 		return 0;
 	}
 
-#if FTS_ESDCHECK_EN
-	fts_esdcheck_suspend();
-#endif
 	fts_irq_disable();
 	synchronize_irq(ts_data->irq);
 	mutex_lock(&fts_data->report_mutex);
 	fts_release_all_finger();
 	mutex_unlock(&fts_data->report_mutex);
 
-#if FTS_GESTURE_EN
 	if (fts_gesture_suspend(ts_data) == 0) {
 		/* Enter into gesture mode(suspend) */
 	fts_irq_enable();
@@ -1765,7 +1484,6 @@ static int fts_ts_suspend(struct device *dev)
 		if(tid->fod_status || ts_data->lpwg_mode || tid->aod_status)
 		    return 0;
 	}
-#endif
 
 	/* TP enter sleep mode */
 	ret = fts_write_reg(FTS_REG_POWER_MODE, FTS_REG_POWER_MODE_SLEEP_VALUE);
@@ -1773,12 +1491,10 @@ static int fts_ts_suspend(struct device *dev)
 		FTS_ERROR("set TP to sleep mode fail, ret=%d", ret);
 
 	if (!ts_data->ic_info.is_incell) {
-#if FTS_POWER_SOURCE_CUST_EN
 		ret = fts_power_source_suspend(ts_data);
 		if (ret < 0) {
 			FTS_ERROR("power enter suspend fail");
 		}
-#endif
 	}
 
 	ts_data->suspended = true;
@@ -1798,10 +1514,8 @@ static int fts_ts_resume(struct device *dev)
 	}
 
 	mutex_lock(&fts_data->report_mutex);
-#ifdef FTS_FOD_EN
 	FTS_DEBUG("FTS:%s finger_in_fod:%d\n", __func__, ts_data->finger_in_fod);
 	if (!ts_data->finger_in_fod)
-#endif
 		fts_release_all_finger();
 	mutex_unlock(&fts_data->report_mutex);
 
@@ -1809,18 +1523,10 @@ static int fts_ts_resume(struct device *dev)
 		char value = 0;
 		int ret;
 
-#if FTS_POWER_SOURCE_CUST_EN
 		fts_power_source_resume(ts_data);
-#endif
-#ifdef FTS_FOD_EN
 		if ( !ts_data->finger_in_fod)
-#endif
 			fts_reset_proc(200);
 		fts_tp_state_recovery(ts_data);
-
-#ifdef USB_CHARGE_DETECT
-			tpd_usb_plugin(b_usb_plugin);
-#endif
 
 		if(tid->fod_status || tid->aod_status)
 			value = 2;
@@ -1835,16 +1541,11 @@ static int fts_ts_resume(struct device *dev)
 		}
 	}
 
-#if FTS_ESDCHECK_EN
-	fts_esdcheck_resume();
-#endif
 
-#if FTS_GESTURE_EN
 	if (fts_gesture_resume(ts_data) == 0) {
 		ts_data->suspended = false;
 		ts_data->fod_point_released = false;
 	}
-#endif
 
 	fts_irq_enable();
 
@@ -1853,9 +1554,6 @@ static int fts_ts_resume(struct device *dev)
 	return 0;
 }
 
-/*****************************************************************************
-* TP Driver
-*****************************************************************************/
 extern int fts_test_entry(char *ini_file_name);
 static int tid_open_short_test(struct device *dev, struct seq_file *seq,
 				   const struct firmware *fw)
@@ -1872,7 +1570,6 @@ static int tid_open_short_test(struct device *dev, struct seq_file *seq,
 	input_dev = ts_data->input_dev;
 	mutex_lock(&input_dev->mutex);
 	disable_irq(ts_data->irq);
-	ret = fts_test_entry("focaltech-ft3518-sumsung.ini");
 	enable_irq(ts_data->irq);
 	mutex_unlock(&input_dev->mutex);
 
@@ -1889,10 +1586,6 @@ static int tid_get_lockdown_info(struct device *dev, char *out_values)
 	FTS_INFO("reading lockdown info");
 	ret = fts_flash_read(0x1e000, (unsigned char*)out_values, 8);
 
-#ifdef USB_CHARGE_DETECT
-	msleep(150);
-	tpd_usb_plugin(b_usb_plugin);
-#endif
 	if(tid->fod_status || tid->aod_status)
 		value = 2;
 
