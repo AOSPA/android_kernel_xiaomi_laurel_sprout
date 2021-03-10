@@ -106,7 +106,6 @@
 
 #define FTX_MAX_COMPATIBLE_TYPE             4
 #define FTX_MAX_COMMMAND_LENGTH             16
-#define USB_CHARGE_DETECT				// if need usb charger detection notify,enable this MACRO
 
 
 /*****************************************************************************
@@ -185,12 +184,6 @@ struct fts_ts_data {
     struct regulator *vdd;
     struct regulator *vcc_i2c;
     struct touch_info_dev *tid;
-#if FTS_PINCTRL_EN
-    struct pinctrl *pinctrl;
-    struct pinctrl_state *pins_active;
-    struct pinctrl_state *pins_suspend;
-    struct pinctrl_state *pins_release;
-#endif
 	bool finger_in_fod;
 	bool fod_finger_skip;
     bool point_id_changed;
@@ -198,12 +191,8 @@ struct fts_ts_data {
     bool fod_point_released;
 	struct mutex fod_mutex;
 	int overlap_area;
-#if defined(CONFIG_FB)
     struct notifier_block fb_notif;
-#elif defined(CONFIG_HAS_EARLYSUSPEND)
-    struct early_suspend early_suspend;
-#endif
-    struct notifier_block dsi_lowpower_notif; 
+    struct notifier_block dsi_lowpower_notif;
 };
 
 
@@ -228,61 +217,20 @@ int fts_bus_init(struct fts_ts_data *ts_data);
 int fts_bus_exit(struct fts_ts_data *ts_data);
 
 /* Gesture functions */
-#if FTS_GESTURE_EN
 int fts_gesture_init(struct fts_ts_data *ts_data);
 int fts_gesture_exit(struct fts_ts_data *ts_data);
 void fts_gesture_recovery(struct fts_ts_data *ts_data);
 int fts_gesture_readdata(struct fts_ts_data *ts_data, u8 *data);
 int fts_gesture_suspend(struct fts_ts_data *ts_data);
 int fts_gesture_resume(struct fts_ts_data *ts_data);
-#endif
 
 /* FOD functions */
-#if FTS_FOD_EN
 int fts_gesture_init(struct fts_ts_data *ts_data);
 int fts_gesture_exit(struct fts_ts_data *ts_data);
 int fts_fod_readdata(struct fts_ts_data *ts_data, u8 *data);
 int fts_fod_suspend(struct fts_ts_data *ts_data);
 int fts_fod_pay(struct fts_ts_data *ts_data);
 int fts_fod_resume(struct fts_ts_data *ts_data);
-
-#endif
-
-/* Apk and functions */
-#if FTS_APK_NODE_EN
-int fts_create_apk_debug_channel(struct fts_ts_data *);
-void fts_release_apk_debug_channel(struct fts_ts_data *);
-#endif
-
-/* ADB functions */
-#if FTS_SYSFS_NODE_EN
-int fts_create_sysfs(struct fts_ts_data *ts_data);
-int fts_remove_sysfs(struct fts_ts_data *ts_data);
-#endif
-
-/* ESD */
-#if FTS_ESDCHECK_EN
-int fts_esdcheck_init(struct fts_ts_data *ts_data);
-int fts_esdcheck_exit(struct fts_ts_data *ts_data);
-int fts_esdcheck_switch(bool enable);
-int fts_esdcheck_proc_busy(bool proc_debug);
-int fts_esdcheck_set_intr(bool intr);
-int fts_esdcheck_suspend(void);
-int fts_esdcheck_resume(void);
-#endif
-
-/* Production test */
-#if FTS_TEST_EN
-int fts_test_init(struct fts_ts_data *ts_data);
-int fts_test_exit(struct fts_ts_data *ts_data);
-#endif
-
-/* Point Report Check*/
-#if FTS_POINT_REPORT_CHECK_EN
-int fts_point_report_check_init(struct fts_ts_data *ts_data);
-int fts_point_report_check_exit(struct fts_ts_data *ts_data);
-void fts_prc_queue_work(struct fts_ts_data *ts_data);
-#endif
 
 /* FW upgrade */
 int fts_fwupg_init(struct fts_ts_data *ts_data);

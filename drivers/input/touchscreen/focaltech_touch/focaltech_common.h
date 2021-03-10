@@ -2,9 +2,6 @@
  *
  * FocalTech fts TouchScreen driver.
  *
- * Copyright (c) 2012-2019, Focaltech Ltd. All rights reserved.
- * Copyright (C) 2020 XiaoMi, Inc.
- *
  * This software is licensed under the terms of the GNU General Public
  * License version 2, as published by the Free Software Foundation, and
  * may be copied, distributed, and modified under those terms.
@@ -15,19 +12,12 @@
  * GNU General Public License for more details.
  *
  */
-/*****************************************************************************
-*
-* File Name: focaltech_common.h
-*
-* Author: Focaltech Driver Team
-*
-* Created: 2016-08-16
-*
-* Abstract:
-*
-* Reference:
-*
-*****************************************************************************/
+
+/*********************************/
+/* Author: Focaltech Driver Team */
+/* Created: 2016-08-08           */
+/* Version: v1.0                 */
+/*********************************/
 
 #ifndef __LINUX_FOCALTECH_COMMON_H__
 #define __LINUX_FOCALTECH_COMMON_H__
@@ -115,18 +105,7 @@
 	}\
 } while(0)
 
-/*****************************************************************************
-*  Alternative mode (When something goes wrong, the modules may be able to solve the problem.)
-*****************************************************************************/
-/*
- * point report check
- * default: disable
- */
-#define FTS_POINT_REPORT_CHECK_EN               0
-
-/*****************************************************************************
-* Global variable or extern global variabls/functions
-*****************************************************************************/
+/* Define functions.  */
 struct ft_chip_t {
 	u64 type;
 	u8 chip_idh;
@@ -145,30 +124,10 @@ struct ts_ic_info {
 	struct ft_chip_t ids;
 };
 
-/*****************************************************************************
-* DEBUG function define here
-*****************************************************************************/
-#if FTS_DEBUG_EN
-#define FTS_DEBUG(fmt, args...) do { \
-	printk("[FTS_TS]%s:"fmt"\n", __func__, ##args); \
-} while (0)
-
-#define FTS_FUNC_ENTER() do { \
-	printk("[FTS_TS]%s: Enter\n", __func__); \
-} while (0)
-
-#define FTS_FUNC_EXIT() do { \
-	printk("[FTS_TS]%s: Exit(%d)\n", __func__, __LINE__); \
-} while (0)
-#else /* #if FTS_DEBUG_EN*/
 #define FTS_DEBUG(fmt, args...)
+#define FTS_ERROR(fmt, args...)
 #define FTS_FUNC_ENTER()
 #define FTS_FUNC_EXIT()
-#endif
-
 #define FTS_INFO(fmt, args...)
 
-#define FTS_ERROR(fmt, args...) do { \
-	printk(KERN_ERR "[FTS_TS/E]%s:"fmt"\n", __func__, ##args); \
-} while (0)
 #endif /* __LINUX_FOCALTECH_COMMON_H__ */
