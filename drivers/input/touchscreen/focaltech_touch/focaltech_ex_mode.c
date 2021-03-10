@@ -16,49 +16,17 @@
  *
  */
 
-/*****************************************************************************
-*
-* File Name: focaltech_ex_mode.c
-*
-* Author: Focaltech Driver Team
-*
-* Created: 2016-08-31
-*
-* Abstract:
-*
-* Reference:
-*
-*****************************************************************************/
-
-/*****************************************************************************
-* 1.Included header files
-*****************************************************************************/
+/*********************************
+* Included header files.
+*********************************/
 #include "focaltech_core.h"
 
-/*****************************************************************************
-* 2.Private constant and macro definitions using #define
-*****************************************************************************/
-
-/*****************************************************************************
-* 3.Private enumerations, structures and unions using typedef
-*****************************************************************************/
 enum _ex_mode {
 	MODE_GLOVE = 0,
 	MODE_COVER,
 	MODE_CHARGER,
 };
 
-/*****************************************************************************
-* 4.Static variables
-*****************************************************************************/
-
-/*****************************************************************************
-* 5.Global variable or extern global variabls/functions
-*****************************************************************************/
-
-/*****************************************************************************
-* 6.Static function prototypes
-*******************************************************************************/
 static int fts_ex_mode_switch(enum _ex_mode mode, u8 value)
 {
 	int ret = 0;
@@ -239,10 +207,9 @@ static ssize_t fts_charger_mode_store(
 	return count;
 }
 
-
-/* read and write charger mode
- * read example: cat fts_glove_mode        ---read  glove mode
- * write example:echo 1 > fts_glove_mode   ---write glove mode to 01
+/* Read and write charger mode
+ * Read example: cat fts_glove_mode        ---read  glove mode
+ * Write example:echo 1 > fts_glove_mode   ---write glove mode to 01
  */
 static DEVICE_ATTR(fts_glove_mode, S_IRUGO | S_IWUSR,
 				   fts_glove_mode_show, fts_glove_mode_store);

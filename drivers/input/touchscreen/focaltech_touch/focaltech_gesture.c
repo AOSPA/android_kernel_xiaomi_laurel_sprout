@@ -16,28 +16,17 @@
  *
  */
 
-/*****************************************************************************
-*
-* File Name: focaltech_gestrue.c
-*
-* Author: Focaltech Driver Team
-*
-* Created: 2016-08-08
-*
-* Abstract:
-*
-* Reference:
-*
-*****************************************************************************/
+/*********************************/
+/* Author: Focaltech Driver Team */
+/* Created: 2016-08-08           */
+/* Version: v1.0                 */
+/*********************************/
 
-/*****************************************************************************
-* 1.Included header files
-*****************************************************************************/
+/*********************************
+* Included header files.
+*********************************/
 #include "focaltech_core.h"
-//#if FTS_GESTURE_EN
-/******************************************************************************
-* Private constant and macro definitions using #define
-*****************************************************************************/
+
 #define KEY_GESTURE_U                           KEY_WAKEUP
 #define KEY_GESTURE_UP                          KEY_UP
 #define KEY_GESTURE_DOWN                        KEY_DOWN
@@ -78,9 +67,6 @@
 #define FOD_TOUCH_LEAVE                         0x27
 
 
-/*****************************************************************************
-* Private enumerations, structures and unions using typedef
-*****************************************************************************/
 /*
 * gesture_id    - mean which gesture is recognised
 * point_num     - points number of this gesture
@@ -110,19 +96,9 @@ struct fts_gesture_fod_st {
 	u8 ucFodEvent;
 };
 
-/*****************************************************************************
-* Static variables
-*****************************************************************************/
 static struct fts_gesture_st fts_gesture_data;
 static struct fts_gesture_fod_st fts_gerture_fod_data;
 
-/*****************************************************************************
-* Global variable or extern global variabls/functions
-*****************************************************************************/
-
-/*****************************************************************************
-* Static function prototypes
-*****************************************************************************/
 static ssize_t fts_gesture_show(
 	struct device *dev, struct device_attribute *attr, char *buf)
 {
@@ -210,16 +186,8 @@ static ssize_t fts_gesture_buf_store(
 }
 
 
-/* sysfs gesture node
- *   read example: cat  fts_gesture_mode       ---read gesture mode
- *   write example:echo 1 > fts_gesture_mode   --- write gesture mode to 1
- *
- */
 static DEVICE_ATTR(fts_gesture_mode, S_IRUGO | S_IWUSR, fts_gesture_show,
 				   fts_gesture_store);
-/*
- *   read example: cat fts_gesture_buf        --- read gesture buf
- */
 static DEVICE_ATTR(fts_gesture_buf, S_IRUGO | S_IWUSR,
 				   fts_gesture_buf_show, fts_gesture_buf_store);
 
