@@ -16,51 +16,22 @@
  *
  */
 
-/************************************************************************
-*
-* File Name: focaltech_i2c.c
-*
-* Author: Focaltech Driver Team
-*
-* Created: 2016-08-04
-*
-* Abstract: i2c communication with TP
-*
-* Version: v1.0
-*
-* Revision History:
-*
-************************************************************************/
+/*********************************/
+/* Author: Focaltech Driver Team */
+/* Created: 2016-08-08           */
+/* Version: v1.0                 */
+/*********************************/
 
-/*****************************************************************************
-* Included header files
-*****************************************************************************/
+/*********************************
+* Included header files.
+*********************************/
 #include "focaltech_core.h"
 
-/*****************************************************************************
-* Private constant and macro definitions using #define
-*****************************************************************************/
-#define I2C_RETRY_NUMBER                    3
+/*********************************
+* Definitions.
+*********************************/
+#define I2C_RETRY_NUMBER 3
 
-/*****************************************************************************
-* Private enumerations, structures and unions using typedef
-*****************************************************************************/
-
-/*****************************************************************************
-* Static variables
-*****************************************************************************/
-
-/*****************************************************************************
-* Global variable or extern global variabls/functions
-*****************************************************************************/
-
-/*****************************************************************************
-* Static function prototypes
-*****************************************************************************/
-
-/*****************************************************************************
-* functions body
-*****************************************************************************/
 int fts_read(u8 *cmd, u32 cmdlen, u8 *data, u32 datalen)
 {
 	int ret = 0;
@@ -72,7 +43,8 @@ int fts_read(u8 *cmd, u32 cmdlen, u8 *data, u32 datalen)
 
 	/* must have data when read */
 	if (!fts_data || !fts_data->client || !data || !datalen) {
-		FTS_ERROR("fts_data/client/data/datalen(%d) is invalid", datalen);
+		FTS_ERROR("fts_data/client/data/datalen(%d) is invalid",
+			  datalen);
 		return -EINVAL;
 	}
 	client = fts_data->client;
@@ -117,7 +89,8 @@ int fts_write(u8 *writebuf, u32 writelen)
 	struct i2c_msg msgs;
 
 	if (!fts_data || !fts_data->client || !writebuf || !writelen) {
-		FTS_ERROR("fts_data/client/data/datalen(%d) is invalid", writelen);
+		FTS_ERROR("fts_data/client/data/datalen(%d) is invalid",
+			  writelen);
 		return -EINVAL;
 	}
 	client = fts_data->client;
