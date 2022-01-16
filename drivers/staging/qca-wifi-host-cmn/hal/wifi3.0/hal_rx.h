@@ -471,6 +471,10 @@ enum hal_rx_ret_buf_manager {
 		RX_MSDU_DESC_INFO_0_DA_IDX_TIMEOUT_OFFSET)) &	\
 		RX_MSDU_DESC_INFO_0_DA_IDX_TIMEOUT_MASK)
 
+#define HAL_RX_REO_MSDU_REO_DST_IND_GET(reo_desc)	\
+	(HAL_RX_MSDU_REO_DST_IND_GET(&		\
+	(((struct reo_destination_ring *)	\
+	   reo_desc)->rx_msdu_desc_info_details)))
 
 #define HAL_RX_MSDU_FLAGS_GET(msdu_info_ptr) \
 	(HAL_RX_FIRST_MSDU_IN_MPDU_FLAG_GET(msdu_info_ptr) | \
@@ -3777,5 +3781,27 @@ bool hal_rx_is_buf_addr_info_valid(
 {
 	return (HAL_RX_BUFFER_ADDR_31_0_GET(buf_addr_info) == 0) ?
 						false : true;
+}
+
+#define HAL_RX_ATTN_MSDU_LEN_ERR_GET(_rx_attn)		\
+	(_HAL_MS((*_OFFSET_TO_WORD_PTR(_rx_attn,	\
+		RX_ATTENTION_1_MSDU_LENGTH_ERR_OFFSET)),	\
+		RX_ATTENTION_1_MSDU_LENGTH_ERR_MASK,		\
+		RX_ATTENTION_1_MSDU_LENGTH_ERR_LSB))
+
+/**
+ * hal_rx_attn_msdu_len_err_get(): Get msdu_len_err value from
+ *  rx attention tlvs
+ * @buf: pointer to rx pkt tlvs hdr
+ *
+ * Return: msdu_len_err value
+ */
+static inline uint32_t
+hal_rx_attn_msdu_len_err_get(uint8_t *buf)
+{
+	struct rx_pkt_tlvs *pkt_tlvs = (struct rx_pkt_tlvs *)buf;
+	struct rx_attention *rx_attn = &pkt_tlvs->attn_tlv.rx_attn;
+
+	return HAL_RX_ATTN_MSDU_LEN_ERR_GET(rx_attn);
 }
 #endif /* _HAL_RX_H */
